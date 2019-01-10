@@ -16,6 +16,7 @@ HDF5BUILD=1
 CGNSBUILD=1
 TEST=1
 HDF5=""
+TOPDIR=$PWD
 
 POSITIONAL=()
 while [[ $# -gt 0 ]]
@@ -77,14 +78,22 @@ fi
 #
 
 # List of all the HDF5 versions to run through
-VER_HDF5="8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6 8_7 8_8 8_9 8_10-patch1 8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21 10_0-patch1 10_1 10_2 10_3 10_4 develop"
+#VER_HDF5="8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6 8_7 8_8 8_9 8_10-patch1 8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21 10_0-patch1 10_1 10_2 10_3 10_4 develop"
+
+VER_HDF5="8_1 8_2"
 
 #VER_HDF5="develop"
 export LIBS="-ldl"
 export FLIBS="-ldl"
 #export LIBS="-Wl,--no-as-needed -ldl"
 
-git clone https://brtnfld@bitbucket.hdfgroup.org/scm/hdffv/hdf5.git
+if [  $HDF5BUILD = 1 ]; then
+    git clone https://brtnfld@bitbucket.hdfgroup.org/scm/hdffv/hdf5.git
+fi
+
+#if [ $CGNSBUILD = 1 ]; then
+#    git clone https://github.com/CGNS/CGNS.git
+#fi
 
 j=0
 for i in ${VER_HDF5}
@@ -142,24 +151,28 @@ do
 
     if [ $CGNSBUILD = 1 ]; then
 
-	git clone https://github.com/CGNS/CGNS.git
-	cd CGNS/src
+        git clone https://github.com/CGNS/CGNS.git CGNS.$i
+        
+	cd ${TOPDIR}/CGNS.$i/src
+        CONFDIR="."
+        
+#        if [ $TEST = 0 ]; then
+#            rm -fr build_1_${i}
+#            mkdir build_1_${i}
+#            cd build_1_${i}
+#            CONFDIR=".."
+#        fi
 
-#    rm -fr build_1_${VER_HDF5}
-#    mkdir build_1_${VER_HDF5}
-#    cd build_1_${VER_HDF5}
-
-
-	CONFIG_CMD="./configure \
+	CONFIG_CMD="$CONFDIR/configure \
 	--with-fortran \
-	--with-hdf5=$HDF5/hdf5 \
+	--with-hdf5=$TOPDIR/$HDF5/hdf5 \
 	--enable-lfs \
 	--disable-shared \
 	--enable-debug \
 	--disable-cgnstools \
         --with-zlib=/usr/include,/usr/lib64/ \
 	--enable-64bit $OPTS"
-
+        
 	echo "$CONFIG_CMD"
 	$CONFIG_CMD
 	
@@ -170,18 +183,14 @@ do
 	    exit $status
 	fi
 	if [[ $PARALLEL != 1 ]]; then
+            cd tests
       # compile the tests
-	    make -j 16 check
+	    make -j 16
 	    status=$?
 	    if [[ $status != 0 ]]; then
 		echo "CGNS make check #FAILED"
 		exit $status
 	    fi
-      # Time make check (does not include the complilation time)
-	    /usr/bin/time -v -f "%e real" -o "results" make check
-            { echo -n "1.$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > ../../cgns_time_$j
-	    { echo -n "1.$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > ../../cgns_mem_$j
-	    cd ../../
 	else
 	    cd ptests
 	    make -j 16
@@ -190,28 +199,39 @@ do
 		echo "PCGNS make #FAILED"
 		exit $status
 	    fi
-      # Time make check (does not include the complilation time)
-	    /usr/bin/time -v -f "%e real" -o "results" make test
-            { echo -n "1.$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > ../../cgns_time_$j
-	    { echo -n "1.$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > ../../cgns_mem_$j
-	    cd ../../../
-	fi
-#      rm -fr $HDF5
-       rm -fr CGNS
-
+        fi
     fi
-
+    if [ $TEST = 1 ]; then
+        if [[ $PARALLEL != 1 ]]; then
+            cd $TOPDIR/CGNS.$i/src/tests
+      # Time make check (does not include the complilation time)
+            /usr/bin/time -v -f "%e real" -o "results" make test
+            { echo -n "1.$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > ../../cgns_time_$j
+            { echo -n "1.$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > ../../cgns_mem_$j
+        else
+            cd $TOPDIR/CGNS.${i}/src/ptests
+      # Time make check (does not include the complilation time)
+           # /usr/bin/time -v -f "%e real" -o "results" make test
+            /usr/bin/time -v -f "%e real" -o "results" $MPIEXEC benchmark_hdf5
+            { echo -n "1.$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > ../../cgns_time_$j
+            { echo -n "1.$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > ../../cgns_mem_$j
+        fi  
+    fi
+    if [ $CGNSBUILD = 1 ]; then
+        if [ $TEST = 1 ]; then
+            rm -fr $TOPDIR/CGNS.$i
+        fi
+    fi
+    cd $TOPDIR
 done
 
 # Combine the timing numbers to a single file
-if [ $CGNSBUILD = 1 ]; then
-
+if [ $TEST = 1 ]; then
     cat cgns_time_* > cgns-timings
     cat cgns_mem_* > cgns-memory
     sed -i 's/_/./g' cgns-timings
     sed -i 's/_/./g' cgns-memory
-
+    
     rm -f cgns_*
-
 fi
 
