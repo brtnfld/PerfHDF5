@@ -86,21 +86,27 @@ if [[ $PARALLEL != 1 ]]; then
 else
    echo -e "${grn}Enabled Parallel: TRUE${nc}"
    OPTS="--enable-parallel"
-   export CC="mpicc"
-   export FC="mpif90"
-   export F77="mpif90"
 
 # ANL
    if [[ "$host" == *"cetus"* || "$host" == *"mira"* ]]; then
        export MPIEXEC="runjob -n $NPROCS -p 16 --block $COBALT_PARTNAME :"
+       export CC="mpicc"
+       export FC="mpif90"
+       export F77="mpif90"
    fi
 #LBNL
    if [[ "$host" == *"cori"* || "$host" == *"edison"* ]]; then
-       export MPIEXEC="mpiexec -n $NPROCS"
+       export MPIEXEC="srun -n $NPROCS"
+       export CC="cc"
+       export FC="ftn"
+       export F77="ftn"
    fi
 #DEFAULT
    if [[ -z "$MPIEXEC" ]]; then
        export MPIEXEC="mpiexec -n $NPROCS"
+       export CC="mpicc"
+       export FC="mpif90"
+       export F77="mpif90"
    fi
 
 fi
@@ -109,10 +115,12 @@ fi
 #
 
 # List of all the HDF5 versions to run through
-VER_HDF5="8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6 8_7 8_8 8_9 8_10-patch1 8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21 10_0-patch1 10_1 10_2 10_3 10_4 develop"
+VER_HDF5_1="8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6 8_7 8_8 8_9"
+VER_HDF5_2="8_10-patch1 8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21"
+VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 develop"
 
-#VER_HDF5="8_1 8_2"
-#VER_HDF5="develop"
+VER_HDF5="$VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
+
 export LIBS="-ldl"
 export FLIBS="-ldl"
 #export LIBS="-Wl,--no-as-needed -ldl"
