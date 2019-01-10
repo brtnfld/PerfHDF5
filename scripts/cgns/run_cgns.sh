@@ -3,6 +3,21 @@
 #
 # This script will build CGNS, and get performance numbers, for all the currently released versions of HDF5.
 #
+# Download and Build all the versions of hdf5
+#
+#./run_cgns.sh --enable-parallel --notest --cgns_nobuild
+#
+# Build different versions of CGNS 
+#
+#./run_cgns.sh --enable-parallel --hdf5_nobuild --notest
+#
+# Build both, no testing
+#
+# ./run_cgns.sh --enable-parallel --notest
+#
+# run the tests
+# ./run_cgns.sh --enable-parallel --hdf5_nobuild --cgns_nobuild --ptest 4 2014
+
 red=$'\e[1;31m'
 grn=$'\e[1;32m'
 yel=$'\e[1;33m'
@@ -16,7 +31,9 @@ HDF5BUILD=1
 CGNSBUILD=1
 TEST=1
 HDF5=""
+NPROCS=8
 TOPDIR=$PWD
+NELEM=65536
 
 POSITIONAL=()
 while [[ $# -gt 0 ]]
@@ -29,7 +46,7 @@ case $key in
     ;;
     --hdf5)
     HDF5="$2" # root install directory
-    shift # past argumente
+    shift # past argument
     shift # past value
     ;;
     --hdf5_nobuild)
@@ -44,6 +61,13 @@ case $key in
     TEST=0
     shift
     ;;
+    --ptest)
+    NPROCS="$2" # Number of processes
+    NELEM="$3" # Size of parallel problem
+    shift # past argument
+    shift # past value
+    shift # past value
+    ;;
     --default)
     shift
     ;;
@@ -53,7 +77,6 @@ esac
 done
 
 host=$HOSTNAME
-
 OPTS=""
 if [[ $PARALLEL != 1 ]]; then
    echo -e "${red}Enabled Parallel: FALSE${nc}"
@@ -67,21 +90,28 @@ else
    export FC="mpif90"
    export F77="mpif90"
 
+# ANL
    if [[ "$host" == *"cetus"* || "$host" == *"mira"* ]]; then
-       export MPIEXEC="runjob -n 256 -p 16 --block $COBALT_PARTNAME :"
-   else
-       export MPIEXEC="mpiexec -n 4"
+       export MPIEXEC="runjob -n $NPROCS -p 16 --block $COBALT_PARTNAME :"
    fi
+#LBNL
+   if [[ "$host" == *"cori"* || "$host" == *"edison"* ]]; then
+       export MPIEXEC="mpiexec -n $NPROCS"
+   fi
+#DEFAULT
+   if [[ -z "$MPIEXEC" ]]; then
+       export MPIEXEC="mpiexec -n $NPROCS"
+   fi
+
 fi
 
 # Output all the results in the cgns-timings file.
 #
 
 # List of all the HDF5 versions to run through
-#VER_HDF5="8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6 8_7 8_8 8_9 8_10-patch1 8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21 10_0-patch1 10_1 10_2 10_3 10_4 develop"
+VER_HDF5="8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6 8_7 8_8 8_9 8_10-patch1 8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21 10_0-patch1 10_1 10_2 10_3 10_4 develop"
 
-VER_HDF5="8_1 8_2"
-
+#VER_HDF5="8_1 8_2"
 #VER_HDF5="develop"
 export LIBS="-ldl"
 export FLIBS="-ldl"
@@ -141,9 +171,9 @@ do
 	cd ../../
     else
 	if [[ $i == d* ]]; then
-	    HDF5=hdf5/build_develop
+	    HDF5=$TOPDIR/hdf5/build_develop
 	else
-	    HDF5=hdf5/build_1_$i
+	    HDF5=$TOPDIR/hdf5/build_1_$i
 	fi
     fi
 
@@ -165,7 +195,7 @@ do
 
 	CONFIG_CMD="$CONFDIR/configure \
 	--with-fortran \
-	--with-hdf5=$TOPDIR/$HDF5/hdf5 \
+	--with-hdf5=$HDF5/hdf5 \
 	--enable-lfs \
 	--disable-shared \
 	--enable-debug \
@@ -204,18 +234,19 @@ do
     if [ $TEST = 1 ]; then
         if [[ $PARALLEL != 1 ]]; then
             cd $TOPDIR/CGNS.$i/src/tests
+            make -j 16
       # Time make check (does not include the complilation time)
             /usr/bin/time -v -f "%e real" -o "results" make test
-            { echo -n "1.$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > ../../cgns_time_$j
-            { echo -n "1.$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > ../../cgns_mem_$j
         else
             cd $TOPDIR/CGNS.${i}/src/ptests
+            make -j 16
       # Time make check (does not include the complilation time)
            # /usr/bin/time -v -f "%e real" -o "results" make test
-            /usr/bin/time -v -f "%e real" -o "results" $MPIEXEC benchmark_hdf5
-            { echo -n "1.$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > ../../cgns_time_$j
-            { echo -n "1.$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > ../../cgns_mem_$j
-        fi  
+            echo "TIMING ... $MPIEXEC benchmark_hdf5"
+            /usr/bin/time -v -f "%e real" -o "results" $MPIEXEC benchmark_hdf5 -nelem $NELEM
+        fi 
+        { echo -n "1.$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/cgns_time_$j
+        { echo -n "1.$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/cgns_mem_$j 
     fi
     if [ $CGNSBUILD = 1 ]; then
         if [ $TEST = 1 ]; then
@@ -227,8 +258,10 @@ done
 
 # Combine the timing numbers to a single file
 if [ $TEST = 1 ]; then
-    cat cgns_time_* > cgns-timings
-    cat cgns_mem_* > cgns-memory
+    echo "#nprocs=$NPROCS, nelem=$NELEM" > cgns-timings
+    echo "#nprocs=$NPROCS, nelem=$NELEM" > cgns-memory
+    cat cgns_time_* >> cgns-timings
+    cat cgns_mem_* >> cgns-memory
     sed -i 's/_/./g' cgns-timings
     sed -i 's/_/./g' cgns-memory
     
