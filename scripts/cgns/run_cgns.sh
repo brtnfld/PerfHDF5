@@ -252,9 +252,10 @@ do
            # /usr/bin/time -v -f "%e real" -o "results" make test
             echo "TIMING ... $MPIEXEC benchmark_hdf5"
             /usr/bin/time -v -f "%e real" -o "results" $MPIEXEC benchmark_hdf5 -nelem $NELEM
-        fi 
-        { echo -n "1.$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/cgns_time_$j
-        { echo -n "1.$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/cgns_mem_$j 
+        fi
+        j0=$(printf "%02d" $j)
+        { echo -n "1.$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/cgns_time_$j0
+        { echo -n "1.$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/cgns_mem_$j0
     fi
     if [ $CGNSBUILD = 1 ]; then
         if [ $TEST = 1 ]; then
