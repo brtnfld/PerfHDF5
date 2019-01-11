@@ -31,6 +31,7 @@ HDF5BUILD=1
 CGNSBUILD=1
 TEST=1
 HDF5=""
+PREFIX=""
 NPROCS=8
 TOPDIR=$PWD
 NELEM=65536
@@ -247,6 +248,7 @@ do
       # Time make check (does not include the complilation time)
             /usr/bin/time -v -f "%e real" -o "results" make test
         else
+            PREFIX="p"
             cd $TOPDIR/CGNS.${i}/src/ptests
             make -j 16
       # Time make check (does not include the complilation time)
@@ -269,12 +271,12 @@ done
 
 # Combine the timing numbers to a single file
 if [ $TEST = 1 ]; then
-    echo "#nprocs=$NPROCS, nelem=$NELEM" > cgns-timings
-    echo "#nprocs=$NPROCS, nelem=$NELEM" > cgns-memory
-    cat cgns_time_* >> cgns-timings
-    cat cgns_mem_* >> cgns-memory
-    sed -i 's/_/./g' cgns-timings
-    sed -i 's/_/./g' cgns-memory
+    echo "#nprocs=$NPROCS, nelem=$NELEM" > ${PREFIX}cgns-timings
+    echo "#nprocs=$NPROCS, nelem=$NELEM" > ${PREFIX}cgns-memory
+    cat cgns_time_* >> ${PREFIX}cgns-timings
+    cat cgns_mem_* >> ${PREFIX}cgns-memory
+    sed -i 's/_/./g' ${PREFIX}cgns-timings
+    sed -i 's/_/./g' ${PREFIX}cgns-memory
     
     rm -f cgns_*
 fi
