@@ -95,7 +95,7 @@ else
        export F77="mpif90"
    fi
 #LBNL
-   if [[ "$host" == *"cori"* || "$host" == *"edison"* ]]; then
+   if [[ "$host" == *"cori"* || "$host" == *"edison"* || "$host" == *"nid"* ]]; then
        export MPIEXEC="srun -n $NPROCS"
        export CC="cc"
        export FC="ftn"
@@ -115,11 +115,12 @@ fi
 #
 
 # List of all the HDF5 versions to run through
-VER_HDF5_1="8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6 8_7 8_8 8_9"
-VER_HDF5_2="8_10-patch1 8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21"
+VER_HDF5_1="8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6 8_7 8_8 8_9 8_10-patch1"
+VER_HDF5_2="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21"
 VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 develop"
 
 VER_HDF5="$VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
+#VER_HDF5="$VER_HDF5_3"
 
 export LIBS="-ldl"
 export FLIBS="-ldl"
@@ -256,6 +257,7 @@ do
         j0=$(printf "%02d" $j)
         { echo -n "1.$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/cgns_time_$j0
         { echo -n "1.$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/cgns_mem_$j0
+        rm -fr benchmark_*.cgns 
     fi
     if [ $CGNSBUILD = 1 ]; then
         if [ $TEST = 1 ]; then
