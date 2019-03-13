@@ -32,6 +32,7 @@ CGNSBUILD=1
 TEST=1
 HDF5=""
 PREFIX=""
+VER_MAJ="1."
 NPROCS=8
 TOPDIR=$PWD
 NELEM=65536
@@ -118,10 +119,11 @@ fi
 # List of all the HDF5 versions to run through
 VER_HDF5_1="8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6 8_7 8_8 8_9 8_10-patch1"
 VER_HDF5_2="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21"
-VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 develop"
+VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 develop"
 
 VER_HDF5="$VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
 #VER_HDF5="$VER_HDF5_3"
+#VER_HDF5="develop"
 
 export LIBS="-ldl"
 export FLIBS="-ldl"
@@ -151,6 +153,7 @@ do
 	    rm -fr build_develop
 	    mkdir build_develop
 	    cd build_develop
+            VER_MAJ=""
 	else
 	    git checkout tags/hdf5-1_$i
 	    rm -fr build_1_$i
@@ -165,7 +168,7 @@ do
 	fi
 	
 	HDF5=$PWD
-	../configure --disable-fortran --disable-hl $HDF5_OPTS
+	../configure --disable-fortran --disable-hl --with-zlib=no --with-szlib=no $HDF5_OPTS
 	make -i -j 16
 	status=$?
 	if [[ $status != 0 ]]; then
@@ -210,9 +213,8 @@ do
 	--disable-shared \
 	--enable-debug \
 	--disable-cgnstools \
-        --with-zlib=/usr/include,/usr/lib64/ \
 	--enable-64bit $OPTS"
-        
+
 	echo "$CONFIG_CMD"
 	$CONFIG_CMD
 	
@@ -257,8 +259,8 @@ do
             /usr/bin/time -v -f "%e real" -o "results" $MPIEXEC benchmark_hdf5 -nelem $NELEM
         fi
         j0=$(printf "%02d" $j)
-        { echo -n "1.$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/cgns_time_$j0
-        { echo -n "1.$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/cgns_mem_$j0
+        { echo -n "$VER_MAJ$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/cgns_time_$j0
+        { echo -n "$VER_MAJ$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/cgns_mem_$j0
         rm -fr benchmark_*.cgns 
     fi
     if [ $CGNSBUILD = 1 ]; then
