@@ -32,7 +32,7 @@ CGNSBUILD=1
 TEST=1
 HDF5=""
 PREFIX=""
-VER_MAJ="1."
+ONE="1."
 NPROCS=8
 TOPDIR=$PWD
 NELEM=65536
@@ -123,7 +123,7 @@ VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 develop"
 
 VER_HDF5="$VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
 #VER_HDF5="$VER_HDF5_3"
-#VER_HDF5="develop"
+#VER_HDF5="develop hyperslab_updates"
 
 export LIBS="-ldl"
 export FLIBS="-ldl"
@@ -147,28 +147,28 @@ do
     if [  $HDF5BUILD = 1 ]; then
 	cd hdf5
 
-	if [[ $i == d* ]]; then
-	    git checkout develop
-	    ./autogen.sh
-	    rm -fr build_develop
-	    mkdir build_develop
-	    cd build_develop
-            VER_MAJ=""
-	else
+        if [[ $i =~ ^[0-9].* ]]; then
 	    git checkout tags/hdf5-1_$i
 	    rm -fr build_1_$i
 	    mkdir build_1_$i
 	    cd build_1_$i
+	else
+	    git checkout $i
+	    ./autogen.sh
+	    rm -fr build_$i
+	    mkdir build_$i
+	    cd build_$i
+            ONE=""
 	fi
 	
-	if [[ $i == 1* || $i == d* ]]; then
-	    HDF5_OPTS="--enable-build-mode=production $OPTS"	
+	if [[ $i == 8* ]]; then
+	    HDF5_OPTS="--enable-production $OPTS"	
 	else
-	    HDF5_OPTS="--enable-production $OPTS"
+	    HDF5_OPTS="--enable-build-mode=production $OPTS"
 	fi
 	
 	HDF5=$PWD
-	../configure --disable-fortran --disable-hl --with-zlib=no --with-szlib=no $HDF5_OPTS
+	../configure --disable-fortran --disable-hl --without-zlib --without-szip  $HDF5_OPTS
 	make -i -j 16
 	status=$?
 	if [[ $status != 0 ]]; then
@@ -183,10 +183,11 @@ do
         fi
 	cd ../../
     else
-	if [[ $i == d* ]]; then
-	    HDF5=$TOPDIR/hdf5/build_develop
-	else
+        if [[ $i =~ ^[0-9].* ]]; then
 	    HDF5=$TOPDIR/hdf5/build_1_$i
+	else
+	    HDF5=$TOPDIR/hdf5/build_$i
+            ONE=""
 	fi
     fi
 
@@ -259,8 +260,8 @@ do
             /usr/bin/time -v -f "%e real" -o "results" $MPIEXEC benchmark_hdf5 -nelem $NELEM
         fi
         j0=$(printf "%02d" $j)
-        { echo -n "$VER_MAJ$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/cgns_time_$j0
-        { echo -n "$VER_MAJ$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/cgns_mem_$j0
+        { echo -n "$ONE$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/cgns_time_$j0
+        { echo -n "$ONE$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/cgns_mem_$j0
         rm -fr benchmark_*.cgns 
     fi
     if [ $CGNSBUILD = 1 ]; then
