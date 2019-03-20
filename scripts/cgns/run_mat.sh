@@ -1,22 +1,22 @@
 #!/bin/bash
 #
 #
-# This script will build CGNS, and get performance numbers, for all the currently released versions of HDF5.
+# This script will build MATLAB, and get performance numbers, for all the currently released versions of HDF5.
 #
 # Download and Build all the versions of hdf5
 #
-#./run_cgns.sh --enable-parallel --notest --cgns_nobuild
+#./run_matlab.sh --enable-parallel --notest --matlab_nobuild
 #
-# Build different versions of CGNS 
+# Build different versions of MATLAB 
 #
-#./run_cgns.sh --enable-parallel --hdf5_nobuild --notest
+#./run_matlab.sh --enable-parallel --hdf5_nobuild --notest
 #
 # Build both, no testing
 #
-# ./run_cgns.sh --enable-parallel --notest
+# ./run_matlab.sh --enable-parallel --notest
 #
 # run the tests
-# ./run_cgns.sh --enable-parallel --hdf5_nobuild --cgns_nobuild --ptest 4 2014
+# ./run_matlab.sh --enable-parallel --hdf5_nobuild --matlab_nobuild --ptest 4 2014
 
 red=$'\e[1;31m'
 grn=$'\e[1;32m'
@@ -28,7 +28,7 @@ nc='\033[0m' # No Color
 
 PARALLEL=0
 HDF5BUILD=1
-CGNSBUILD=1
+MATLABBUILD=1
 TEST=1
 HDF5=""
 PREFIX=""
@@ -55,8 +55,8 @@ case $key in
     HDF5BUILD=0
     shift
     ;;
-    --cgns_nobuild)
-    CGNSBUILD=0
+    --matlab_nobuild)
+    MATLABBUILD=0
     shift
     ;;
     --notest)
@@ -113,76 +113,68 @@ else
 
 fi
 
-# Output all the results in the cgns-timings file.
+# Output all the results in the matlab-timings file.
 #
 
 # List of all the HDF5 versions to run through
-VER_HDF5_1="8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6 8_7 8_8 8_9 8_10-patch1"
+VER_HDF5_0="6_0 6_1 6_2 6_5 6_6 6_7 6_8 6_9 6_10"
+VER_HDF5_1="$VER_HDF5_0 8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6 8_7 8_8 8_9 8_10-patch1"
 VER_HDF5_2="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21"
-VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 1_10 develop"
+VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 1_10 HDFFV-10658-performance-drop-for-1-10 develop HDFFV-10658-performance-drop-from-1-8"
 
 VER_HDF5="$VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
-#VER_HDF5="$VER_HDF5_3"
-VER_HDF5="8_21 1_10 develop"
-#VER_HDF5="1_10"
-#VER_HDF5="10_0-patch1"
-
+#VER_HDF5="8_1"
 export LIBS="-ldl"
 export FLIBS="-ldl"
-#export LIBS="-Wl,--no-as-needed -ldl"
 
 if [  $HDF5BUILD = 1 ]; then
     rm -fr hdf5
-    git clone https://brtnfld@bitbucket.hdfgroup.org/scm/hdffv/hdf5.git
+    git clone https://brtnfld@bitbucket.hdfgroup.org/scm/~songyulu/hdf5_ray.git hdf5
+ #   git clone https://brtnfld@bitbucket.hdfgroup.org/scm/hdffv/hdf5.git
 fi
 
-#if [ $CGNSBUILD = 1 ]; then
-#    git clone https://github.com/CGNS/CGNS.git
+#if [ $MATLABBUILD = 1 ]; then
+#    git clone https://github.com/MATLAB/MATLAB.git
 #fi
 
 j=0
 for i in ${VER_HDF5}
-
 do
     status=0
     j=$[j + 1]
 # Build HDF5
     PRE="1_$i"
+    ONE="1."
     if [  $HDF5BUILD = 1 ]; then
 	cd hdf5
 
-	if [[ $i == d* ]]; then
-            PRE="$i"
-	    git checkout develop
-	    ./autogen.sh
-	    rm -fr build_$PRE
-	    mkdir build_$PRE
-	    cd build_$PRE
-        else
-            if [[ $i == 1_10 ]]; then
-                PRE="$i"
-                git checkout hdf5_$i
-                ./autogen.sh
-                rm -fr build_$i
-                mkdir build_$i
-                cd build_$i
-            else
-                git checkout hdf5-$PRE
-                rm -fr build_$PRE
-                mkdir build_$PRE
-                cd build_$PRE
-            fi
-	fi
-	
-	if [[ $i == 1* || $i == d* ]]; then
-	   # HDF5_OPTS="--disable-maintainer-mode --enable-build-mode=production $OPTS --enable-cxx"
-	    HDF5_OPTS="--enable-build-mode=production $OPTS --enable-cxx"
+        if [[ $i =~ ^[0-9].* ]]; then
+	    git checkout tags/hdf5-1_$i
+	    rm -fr build_1_$i
+	    mkdir build_1_$i
+	    cd build_1_$i
 	else
-	    HDF5_OPTS="--enable-production --enable-cxx $OPTS"
+	    git checkout $i
+	    ./autogen.sh
+	    rm -fr build_$i
+	    mkdir build_$i
+	    cd build_$i
+            ONE=""
 	fi
 	
+        CXXFLAGS=""
+	if [[ $i == 8*  || $i == 6* ]]; then
+	    HDF5_OPTS="--enable-production --enable-cxx $OPTS"
+            if [[ $i == 6* ]]; then
+                HDF5_OPTS="$HDF5_OPTS --prefix $PWD/hdf5"
+                CXXFLAGS="-DHDF5_1_6"
+            fi
+	else
+	    HDF5_OPTS="--enable-build-mode=production --enable-cxx $OPTS"
+	fi
+
 	HDF5=$PWD
-	../configure --disable-fortran --disable-hl $HDF5_OPTS
+	../configure --disable-fortran --disable-hl --without-zlib --without-szip $HDF5_OPTS
 	make -i -j 16
 	status=$?
 	if [[ $status != 0 ]]; then
@@ -197,28 +189,35 @@ do
         fi
 	cd ../../
     else
-	if [ $i == develop ] || [ $i == 1_10 ]; then
-            PRE=$i
-        fi
-        HDF5=$TOPDIR/hdf5/build_$PRE
+        if [[ $i =~ ^[0-9].* ]]; then
+	    HDF5=$TOPDIR/hdf5/build_1_$i
+	else
+	    HDF5=$TOPDIR/hdf5/build_$i
+            ONE=""
+	fi
     fi
 
 # Build EXAMPLE
-
-    if [ $CGNSBUILD = 1 ]; then
+    if [ $MATLABBUILD = 1 ]; then
         echo "$HDF5/hdf5/bin/h5c++ -o writeLargeNumDsets writeLargeNumDsets.cpp"
-        $HDF5/hdf5/bin/h5c++ -o writeLargeNumDsets writeLargeNumDsets.cpp
+        $HDF5/hdf5/bin/h5c++ $CXXFLAGS -o writeLargeNumDsets writeLargeNumDsets.cpp
+	status=$?
+	if [[ $status != 0 ]]; then
+            echo "FAILED TO COMPILE writeLargeNumDsets.cpp"
+            rm -f writeLargeNumDsets
+	    exit $status
+	fi
     fi
     if [ $TEST = 1 ]; then
         /usr/bin/time -v -f "%e real" -o "results" ./writeLargeNumDsets
         rm -fr fileWithLargeNumDsets.h5
         j0=$(printf "%02d" $j)
-        { echo -n "$PRE " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/cgns_time_$j0
-        { echo -n "$PRE " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/cgns_mem_$j0
+        { echo -n "$ONE$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/matlab_time_$j0
+        { echo -n "$ONE$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/matlab_mem_$j0
     fi
-    if [ $CGNSBUILD = 1 ]; then
+    if [ $MATLABBUILD = 1 ]; then
         if [ $TEST = 1 ]; then
-            rm -fr $TOPDIR/CGNS.$i
+            rm -fr $TOPDIR/MATLAB.$i
         fi
     fi
     cd $TOPDIR
@@ -226,13 +225,13 @@ done
 
 # Combine the timing numbers to a single file
 if [ $TEST = 1 ]; then
-    echo "#nprocs=$NPROCS, nelem=$NELEM" > ${PREFIX}cgns-timings
-    echo "#nprocs=$NPROCS, nelem=$NELEM" > ${PREFIX}cgns-memory
-    cat cgns_time_* >> ${PREFIX}cgns-timings
-    cat cgns_mem_* >> ${PREFIX}cgns-memory
-    sed -i 's/_/./g' ${PREFIX}cgns-timings
-    sed -i 's/_/./g' ${PREFIX}cgns-memory
+    echo "#nprocs=$NPROCS, nelem=$NELEM" > ${PREFIX}matlab-timings
+    echo "#nprocs=$NPROCS, nelem=$NELEM" > ${PREFIX}matlab-memory
+    cat matlab_time_* >> ${PREFIX}matlab-timings
+    cat matlab_mem_* >> ${PREFIX}matlab-memory
+    sed -i 's/_/./g' ${PREFIX}matlab-timings
+    sed -i 's/_/./g' ${PREFIX}matlab-memory
     
-    rm -f cgns_*
+    rm -f matlab_*
 fi
 
