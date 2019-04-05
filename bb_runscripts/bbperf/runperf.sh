@@ -10,6 +10,9 @@
 # "osx109",
 # "osx1010",
 # "osx1011",
+# "osx1012",
+# "osx1013",
+# "osx1014",
 
 USAGE()
 {
@@ -29,60 +32,105 @@ fi
 
 PLATFORM="$1"
 
+# trunk is bbtconf.json
+# 1.8 is bb18tconf.json
+# 1.10 is bb110tconf.json
+CONFFILE=bbtconf.json
+PRODUCT=hdf5perf
+#
 HOST='206.221.145.51'
 DIRN='/mnt/ftp/pub/outgoing/QATEST/'
 
 GENERATOR='Unix Makefiles'
-CONFIG=StdMPITrunk
-PRODUCT=hdf5perf
 OSSIZE=64
+
+# trunk is StdMPITrunk
+# 1.8 is StdMPI18
+# 1.10 is StdMPI110
+CONFIG=StdMPITrunk
+
+# SCHEDULE list
+# "weekly",
+# "nightly",
+# "change",
+SCHEDULE=weekly
+
+DATASTORE="{\"generator\": \""
+DATASTORE=$DATASTORE"$GENERATOR"
+DATASTORE=$DATASTORE"\", \"scheduler\": \""
+DATASTORE=$DATASTORE"$SCHEDULE"
+DATASTORE=$DATASTORE"\", \"modules\": {\"use\": \"/opt/pkgs/modules/all\"}, \"toolsets\": [\"default\"], \"compilers\": [\"C\", \"Fortran\", \"Java\"]}"
+
+mkdir $CONFIG
+cd $CONFIG
+python ../doftp.py $HOST $DIRN scripts . doftp.py
 
 mkdir build
 cd build
-#
-mkdir hdfsrc
-cd hdfsrc
-#git clone --branch master 'ssh://git@bitbucket.hdfgroup.org:7999/hdffv/performance.git' . --progress
-git clone --branch master 'https://git@bitbucket.hdfgroup.org/scm/hdffv/performance.git' . --progress
-cd ..
+# Main configuration file
 python ../doftp.py $HOST $DIRN scripts . bbtconf.json
+#
+if [ "$SCHEDULE" == "change" ]
+then
+  mkdir hdfsrc
+  cd hdfsrc
+  #git clone --branch master 'ssh://git@bitbucket.hdfgroup.org:7999/hdffv/performance.git' . --progress
+  git clone --branch master 'https://git@bitbucket.hdfgroup.org/scm/hdffv/performance.git' . --progress
+  #
+  cd ..
+fi
+#
+# Product configuration file
+python ../doftp.py $HOST $DIRN $PRODUCT/ . $CONFFILE
+# Platform configuration file
+python ../doftp.py $HOST $DIRN scripts . bbsystems.json
+
+#
+python ../doftp.py $HOST $DIRN scripts . doDistributeGet.py
+python ./doDistributeGet.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG $PRODUCT/ $CONFFILE
+python ../doftp.py $HOST $DIRN scripts . doftpuncompress.py
+python ./doftpuncompress.py $HOST $DIRN $PLATFORM $OSSIZE $PLATFORM $CONFIG bbparams autotools insbin $CONFFILE "$DATASTORE"
+python ../doftp.py $HOST $DIRN scripts . doatlin.py
+python ./doatlin.py insbin $CONFIG bbparams autotools $CONFFILE
+#
+if [ "$SCHEDULE" != "change" ]
+then
+  python ../doftp.py $HOST $DIRN scripts . doSourceftp.py
+  python ../doftp.py $HOST $DIRN scripts . dosrcuncompress.py
+#
+  python ./doSourceftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG $PRODUCT/ $CONFFILE
+  python ./dosrcuncompress.py $PLATFORM $CONFIG hdfsrc $CONFFILE
+fi
 #
 mkdir autotools
 cd autotools
-python ../../doftp.py $HOST $DIRN hdf5perf/ . bbtconf.json
-python ../../doftp.py $HOST $DIRN scripts . doDistributeGet.py
-python ../../doftp.py $HOST $DIRN scripts . dobtftp.py
-python ../../doftp.py $HOST $DIRN scripts . dobtuncompress.py
-python ../../doftp.py $HOST $DIRN scripts . doatlin.py
+#
 python ../../doftp.py $HOST $DIRN scripts . doFilesftp.py
-python ../../doftp.py $HOST $DIRN scripts . doATconfig.py
-python ../../doftp.py $HOST $DIRN scripts . doATmake.py
-python ../../doftp.py $HOST $DIRN scripts . doATcheck.py
+python ../../doftp.py $HOST $DIRN scripts . doATbuild.py
+# Product configuration file
+python ../../doftp.py $HOST $DIRN $PRODUCT/ . $CONFFILE
 #
-python ./doDistributeGet.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG bbparams bbtconf.json
-python ./dobtftp.py $HOST $DIRN $PLATFORM $OSSIZE $PLATFORM $CONFIG bbparams autotools "$GENERATOR" insbin bbtconf.json
-python ./dobtuncompress.py $PLATFORM $OSSIZE $PLATFORM $CONFIG bbparams autotools "$GENERATOR" insbin bbtconf.json
-python ./doatlin.py insbin bbtconf.json
+python ../../doftp.py $HOST $DIRN scripts . readJSON.py
+#
+python ./doFilesftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG bbparams autotools DTP/extra $CONFFILE
+#
 #combust_io test
-python ./doFilesftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG combust_io autotools DTP/extra bbtconf.json
-python ./doATconfig.py bbtconf.json $CONFIG combust_io $PLATFORM schedule C Fortran MPI
-python ./doATmake.py bbtconf.json $CONFIG combust_io $PLATFORM schedule C Fortran MPI
-python ./doATcheck.py bbtconf.json $CONFIG combust_io $PLATFORM schedule C Fortran MPI
-#h5core test
-python ./doFilesftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG h5core autotools DTP/extra bbtconf.json
-python ./doATconfig.py bbtconf.json $CONFIG h5core $PLATFORM schedule C Fortran MPI
-python ./doATmake.py bbtconf.json $CONFIG h5core $PLATFORM schedule C Fortran MPI
-python ./doATcheck.py bbtconf.json $CONFIG h5core $PLATFORM schedule C Fortran MPI
-#h5perf test
-python ./doFilesftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG h5perf autotools DTP/extra bbtconf.json
-python ./doATconfig.py bbtconf.json $CONFIG h5perf $PLATFORM schedule C Fortran Java MPI
-python ./doATmake.py bbtconf.json $CONFIG h5perf $PLATFORM schedule C Fortran Java MPI
-python ./doATcheck.py bbtconf.json $CONFIG h5perf $PLATFORM schedule C Fortran Java MPI
-#seism-core test
-python ./doFilesftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG seism-core autotools DTP/extra bbtconf.json
-python ./doATconfig.py bbtconf.json $CONFIG seism-core $PLATFORM schedule C Fortran MPI
-python ./doATmake.py bbtconf.json $CONFIG seism-core $PLATFORM schedule C Fortran MPI
-python ./doATcheck.py bbtconf.json $CONFIG seism-core $PLATFORM schedule C Fortran MPI
+python ./doFilesftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG combust_io autotools DTP/extra $CONFFILE
+python ./doATbuild.py $CONFFILE $CONFIG combust_io $PLATFORM insbin $SCHEDULE "$DATASTORE"
 #
-cd ../..
+#h5core test
+python ./doFilesftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG h5core autotools DTP/extra $CONFFILE
+python ./doATbuild.py $CONFFILE $CONFIG h5core $PLATFORM insbin $SCHEDULE "$DATASTORE"
+#
+#h5perf test
+python ./doFilesftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG h5perf autotools DTP/extra $CONFFILE
+python ./doATbuild.py $CONFFILE $CONFIG h5perf $PLATFORM insbin $SCHEDULE "$DATASTORE"
+#
+#seism-core test
+python ./doFilesftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG seism-core autotools DTP/extra $CONFFILE
+python ./doATbuild.py $CONFFILE $CONFIG seism-core $PLATFORM insbin $SCHEDULE "$DATASTORE"
+#
+python ./readJSON.py
+#
+cd ../../..
 
