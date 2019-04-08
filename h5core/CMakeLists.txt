@@ -19,13 +19,6 @@ INCLUDE_DIRECTORIES (${HDF5_INCLUDE_DIR})
 find_package(MPI REQUIRED)
 if (MPI_C_FOUND)
   set (H5_HAVE_PARALLEL 1)
-  # MPI checks, only do these if MPI_C_FOUND is true, otherwise they always fail
-  # and once set, they are cached as false and not regenerated
-  set (CMAKE_REQUIRED_LIBRARIES "${MPI_C_LIBRARIES}" )
-  # Used by Fortran + MPI
-  include (${CMAKE_ROOT}/Modules/CheckSymbolExists.cmake)
-  CHECK_SYMBOL_EXISTS (MPI_Comm_c2f "${MPI_C_INCLUDE_DIRS}/mpi.h"  H5_HAVE_MPI_MULTI_LANG_Comm)
-  CHECK_SYMBOL_EXISTS (MPI_Info_c2f "${MPI_C_INCLUDE_DIRS}/mpi.h"  H5_HAVE_MPI_MULTI_LANG_Info)
 else ()
   message (FATAL_ERROR "Required Parallel libraries not found")
 endif ()
@@ -47,13 +40,15 @@ set_property (TARGET h5core
       APPEND PROPERTY COMPILE_DEFINITIONS STANDALONE
 )
 
+set (TEST_nprocs 8)
+
 add_test (
    NAME CLEAR_h5core
    COMMAND ${CMAKE_COMMAND} -E remove *.h5
 )
 
 add_test (NAME TEST_h5core COMMAND "${CMAKE_COMMAND}"
-    -D "TEST_PROGRAM=${MPIEXEC_EXECUTABLE};${MPIEXEC_NUMPROC_FLAG};6;${MPIEXEC_PREFLAGS};$<TARGET_FILE:h5core>;${MPIEXEC_POSTFLAGS}"
+    -D "TEST_PROGRAM=${MPIEXEC_EXECUTABLE};${MPIEXEC_NUMPROC_FLAG};${TEST_nprocs};${MPIEXEC_PREFLAGS};$<TARGET_FILE:h5core>;${MPIEXEC_POSTFLAGS}"
     -D "TEST_ARGS:STRING=-l;28"
     -D "TEST_EXPECT=0"
     -D "TEST_SKIP_COMPARE:BOOL=true"

@@ -1,13 +1,13 @@
 cmake_minimum_required (VERSION 3.10.2)
-project (seism-core CXX)
+project (seism-core C CXX)
 include (CheckIncludeFileCXX)
 include (TestForSTDNamespace)
 
-set (FIND_HDF_COMPONENTS CXX static)
+set (FIND_HDF_COMPONENTS C static)
 find_package (HDF5 NAMES "hdf5" COMPONENTS ${FIND_HDF_COMPONENTS})
 if (HDF5_FOUND)
-  if (HDF5_static_CXX_FOUND)
-    set (LINK_LIBS ${LINK_LIBS} ${HDF5_CXX_STATIC_LIBRARY})
+  if (HDF5_static_C_FOUND)
+    set (LINK_LIBS ${LINK_LIBS} ${HDF5_C_STATIC_LIBRARY})
   endif ()
 else ()
   message (FATAL_ERROR " HDF5 is Required")
@@ -21,13 +21,6 @@ INCLUDE_DIRECTORIES (${HDF5_INCLUDE_DIR})
 find_package(MPI REQUIRED)
 if (MPI_CXX_FOUND)
   set (H5_HAVE_PARALLEL 1)
-  # MPI checks, only do these if MPI_CXX_FOUND is true, otherwise they always fail
-  # and once set, they are cached as false and not regenerated
-  set (CMAKE_REQUIRED_LIBRARIES "${MPI_CXX_LIBRARIES}" )
-  # Used by Fortran + MPI
-  include (${CMAKE_ROOT}/Modules/CheckSymbolExists.cmake)
-  CHECK_SYMBOL_EXISTS (MPI_Comm_c2f "${MPI_C_INCLUDE_DIRS}/mpi.h"  H5_HAVE_MPI_MULTI_LANG_Comm)
-  CHECK_SYMBOL_EXISTS (MPI_Info_c2f "${MPI_C_INCLUDE_DIRS}/mpi.h"  H5_HAVE_MPI_MULTI_LANG_Info)
 else ()
   message (FATAL_ERROR "Required Parallel libraries not found")
 endif ()
@@ -35,7 +28,7 @@ endif ()
 # Parallel IO usage requires MPI to be Linked and Included
 if (H5_HAVE_PARALLEL)
   set (LINK_LIBS ${LINK_LIBS} ${MPI_CXX_LIBRARIES})
-  if (MPI_C_LINK_FLAGS)
+  if (MPI_CXX_LINK_FLAGS)
     set (CMAKE_EXE_LINKER_FLAGS "${MPI_CXX_LINK_FLAGS} ${CMAKE_EXE_LINKER_FLAGS}")
   endif ()
 endif ()
@@ -62,13 +55,15 @@ add_executable (seism-core-check ${seism-core-check_srcs})
 target_link_libraries (seism-core-check ${LINK_LIBS})
 target_include_directories(seism-core-check PUBLIC ${MPI_CXX_INCLUDE_DIRS})
 
+set (TEST_nprocs 8) #processor 2 2 2
+
 add_test (
    NAME CLEAR_seism-core-slice
    COMMAND ${CMAKE_COMMAND} -E remove *.h5
 )
 
 add_test (NAME TEST_seism-core-slice COMMAND "${CMAKE_COMMAND}"
-    -D "TEST_PROGRAM=${MPIEXEC_EXECUTABLE};${MPIEXEC_NUMPROC_FLAG};8;${MPIEXEC_PREFLAGS};$<TARGET_FILE:seism-core-slice>;${MPIEXEC_POSTFLAGS}"
+    -D "TEST_PROGRAM=${MPIEXEC_EXECUTABLE};${MPIEXEC_NUMPROC_FLAG};${TEST_nprocs};${MPIEXEC_PREFLAGS};$<TARGET_FILE:seism-core-slice>;${MPIEXEC_POSTFLAGS}"
     -D "TEST_ARGS:STRING="
     -D "TEST_EXPECT=0"
     -D "TEST_INPUT=${PROJECT_SOURCE_DIR}/tests/check-0.in"

@@ -19,13 +19,6 @@ INCLUDE_DIRECTORIES (${HDF5_INCLUDE_DIR} ${HDF5_INCLUDE_DIR_FORTRAN})
 find_package(MPI REQUIRED)
 if (MPI_Fortran_FOUND)
   set (H5_HAVE_PARALLEL 1)
-  # MPI checks, only do these if MPI_Fortran_FOUND is true, otherwise they always fail
-  # and once set, they are cached as false and not regenerated
-  set (CMAKE_REQUIRED_LIBRARIES "${MPI_Fortran_LIBRARIES}" )
-  # Used by Fortran + MPI
-  include (${CMAKE_ROOT}/Modules/CheckSymbolExists.cmake)
-  CHECK_SYMBOL_EXISTS (MPI_Comm_c2f "${MPI_Fortran_INCLUDE_DIRS}/mpi.h"  H5_HAVE_MPI_MULTI_LANG_Comm)
-  CHECK_SYMBOL_EXISTS (MPI_Info_c2f "${MPI_Fortran_INCLUDE_DIRS}/mpi.h"  H5_HAVE_MPI_MULTI_LANG_Info)
 else ()
   message (FATAL_ERROR "Required Parallel libraries not found")
 endif ()
@@ -81,7 +74,7 @@ add_custom_command (
     TARGET     combust_io
     POST_BUILD
     COMMAND    ${CMAKE_COMMAND}
-    ARGS       -E copy_if_different ""${PROJECT_SOURCE_DIR}/input" "${PROJECT_BINARY_DIR}/input"
+    ARGS       -E copy_if_different "${PROJECT_SOURCE_DIR}/input" "${PROJECT_BINARY_DIR}/input"
 )
 
 prep_data (4)
