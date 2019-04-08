@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.10.2)
-project (h5perf C)
+project (h5core C)
 
 set (FIND_HDF_COMPONENTS C static)
 find_package (HDF5 NAMES "hdf5" COMPONENTS ${FIND_HDF_COMPONENTS})
@@ -40,38 +40,28 @@ endif ()
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O2")
 
-set (h5perf_srcs
-    src/pio_engine.c
-    src/pio_perf.c
-    src/pio_perf.h
-#    src/pio_standalone.c
-#    src/pio_standalone.h
-    src/pio_timer.c
-    src/pio_timer.h
-)
-
-add_executable (h5perf ${h5perf_srcs})
-target_link_libraries (h5perf ${LINK_LIBS})
-target_include_directories(h5perf PUBLIC ${MPI_C_INCLUDE_DIRS})
-set_property (TARGET h5perf
+add_executable (h5core src/h5core.c)
+target_link_libraries (h5core ${LINK_LIBS})
+target_include_directories(h5core PUBLIC ${MPI_C_INCLUDE_DIRS})
+set_property (TARGET h5core
       APPEND PROPERTY COMPILE_DEFINITIONS STANDALONE
 )
 
 add_test (
-   NAME CLEAR_h5perf
+   NAME CLEAR_h5core
    COMMAND ${CMAKE_COMMAND} -E remove *.h5
 )
 
-add_test (NAME TEST_h5perf COMMAND "${CMAKE_COMMAND}"
-    -D "TEST_PROGRAM=${MPIEXEC_EXECUTABLE};${MPIEXEC_NUMPROC_FLAG};6;${MPIEXEC_PREFLAGS};$<TARGET_FILE:h5perf>;${MPIEXEC_POSTFLAGS}"
-    -D "TEST_ARGS:STRING=-B;2;-e;8;-p;6;-P;6;-x;4;-X;4;--debug=r,t;-d;4;-F;4;-i;40"
+add_test (NAME TEST_h5core COMMAND "${CMAKE_COMMAND}"
+    -D "TEST_PROGRAM=${MPIEXEC_EXECUTABLE};${MPIEXEC_NUMPROC_FLAG};6;${MPIEXEC_PREFLAGS};$<TARGET_FILE:h5core>;${MPIEXEC_POSTFLAGS}"
+    -D "TEST_ARGS:STRING=-l;28"
     -D "TEST_EXPECT=0"
     -D "TEST_SKIP_COMPARE:BOOL=true"
-    -D "TEST_OUTPUT=h5perf.out"
+    -D "TEST_OUTPUT=h5core.out"
     -D "TEST_FOLDER=${PROJECT_BINARY_DIR}"
     -P "${PROJECT_SOURCE_DIR}/../scripts/runTest.cmake"
 )
-set_tests_properties (TEST_h5perf PROPERTIES DEPENDS CLEAR_h5perf)
+set_tests_properties (TEST_h5core PROPERTIES DEPENDS CLEAR_h5core)
 
 set (DART_TESTING_TIMEOUT 1200
     CACHE STRING
