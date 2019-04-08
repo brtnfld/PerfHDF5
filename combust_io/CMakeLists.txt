@@ -64,10 +64,30 @@ add_test (
    COMMAND ${CMAKE_COMMAND} -E remove *.h5 *.mod
 )
 
+#input settings
+#nx,ny,nz,ng
+#   256,256,256,2
+#iprc,jprc,kprc
+#   4,4,4
+#relay,relay size
+#   1,32
+#write flag
+#   1
+#chunk dims
+#   -1,-1,-1
+set (TEST_nprocs 64) #iprc * jprc * kprc
+
+add_custom_command (
+    TARGET     combust_io
+    POST_BUILD
+    COMMAND    ${CMAKE_COMMAND}
+    ARGS       -E copy_if_different ""${PROJECT_SOURCE_DIR}/input" "${PROJECT_BINARY_DIR}/input"
+)
+
 prep_data (4)
 
 add_test (NAME TEST_combust_io COMMAND "${CMAKE_COMMAND}"
-    -D "TEST_PROGRAM=${MPIEXEC_EXECUTABLE};${MPIEXEC_NUMPROC_FLAG};6;${MPIEXEC_PREFLAGS};$<TARGET_FILE:combust_io>;${MPIEXEC_POSTFLAGS}"
+    -D "TEST_PROGRAM=${MPIEXEC_EXECUTABLE};${MPIEXEC_NUMPROC_FLAG};${TEST_nprocs};${MPIEXEC_PREFLAGS};$<TARGET_FILE:combust_io>;${MPIEXEC_POSTFLAGS}"
     -D "TEST_ARGS:STRING="
     -D "TEST_EXPECT=0"
     -D "TEST_SKIP_COMPARE:BOOL=true"
