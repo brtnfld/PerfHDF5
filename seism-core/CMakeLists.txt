@@ -75,7 +75,7 @@ add_test (NAME TEST_seism-core-slice COMMAND "${CMAKE_COMMAND}"
 set_tests_properties (TEST_seism-core-slice PROPERTIES DEPENDS CLEAR_seism-core-slice)
 
 add_test (NAME TEST_seism-core-check COMMAND "${CMAKE_COMMAND}"
-    -D "TEST_PROGRAM=${MPIEXEC_EXECUTABLE};${MPIEXEC_NUMPROC_FLAG};8;${MPIEXEC_PREFLAGS};$<TARGET_FILE:seism-core-check>;${MPIEXEC_POSTFLAGS}"
+    -D "TEST_PROGRAM=$<TARGET_FILE:seism-core-check>"
     -D "TEST_ARGS:STRING=seism-test.h5"
     -D "TEST_EXPECT=0"
     -D "TEST_OUTPUT=seism-core-check.out"
