@@ -120,6 +120,8 @@ VER_HDF5_2="8_16 8_17 8_18 8_19 8_20 8_21"
 VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 1_10 develop"
 
 VER_HDF5="$VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
+VER_HDF5="10_3 10_4 10_5 merge_hyperslab_update_01 refactor_obj_create_params develop"
+#VER_HDF5="merge_hyperslab_update_01"
 #VER_HDF5="$VER_HDF5_3"
 #VER_HDF5="10_1"
 
@@ -128,13 +130,22 @@ export FLIBS="-ldl"
 #export LIBS="-Wl,--no-as-needed -ldl"
 
 if [  $HDF5BUILD = 1 ]; then
+    if [ -d "hdf5" ]; then
+        rm -fr hdf5
+    fi
     git clone https://brtnfld@bitbucket.hdfgroup.org/scm/hdffv/hdf5.git
 fi
 if [ $NETCDFBUILD = 1 ]; then
     tar xvzf netcdf-c-4.6.2.tar.gz
 fi
 
-
+printf "$cyn *******************************************\n"
+printf "      _   __     __  __________  ______\n"
+printf "     / | / /__  / /_/ ____/ __ \/ ____/\n"
+printf "    /  |/ / _ \/ __/ /   / / / / /_\n"  
+printf "   / /|  /  __/ /_/ /___/ /_/ / __/\n"   
+printf "  /_/ |_/\___/\__/\____/_____/_/\n" 
+printf " ******************************************* $nc\n"
 
 j=0
 for i in ${VER_HDF5}
@@ -147,35 +158,29 @@ do
     if [  $HDF5BUILD = 1 ]; then
 	cd hdf5
 
-	if [[ $i == d* ]]; then
-            PRE="$i"
-	    git checkout develop
-	    ./autogen.sh
-	    rm -fr build_develop_$PRE
-	    mkdir build_develop_$PRE
-	    cd build_develop_$PRE
+        if [[ $i =~ ^[0-9].* ]]; then
+	    git checkout tags/hdf5-1_$i
+	    rm -fr build_1_$i
+	    mkdir build_1_$i
+	    cd build_1_$i
 	else
-            if [[ $i == 1_10 ]]; then
-                PRE="$i"
-                git checkout hdf5_$i
-                ./autogen.sh
-                rm -fr build_$i
-                mkdir build_$i
-                cd build_$i
-            else
-                git checkout hdf5-$PRE
-                rm -fr build_$PRE
-                mkdir build_$PRE
-                cd build_$PRE
+	    git checkout $i
+	    ./autogen.sh
+	    rm -fr build_$i
+	    mkdir build_$i
+	    cd build_$i
+            ONE=""
+	fi
+	
+	if [[ $i == 8* ]]; then
+	    HDF5_OPTS="--enable-production $OPTS"	
+	else
+            HDF5_OPTS="--enable-build-mode=production $OPTS"
+            if [[ $i != 10* ]]; then
+                HDF5_OPTS="--with-default-api-version=v110 $OPTS"
             fi
 	fi
-	
-	if [[ $i == 1* || $i == d* ]]; then
-	    HDF5_OPTS=" --enable-shared=no --enable-build-mode=production $OPTS"	
-	else
-	    HDF5_OPTS=" --enable-shared=no --enable-production $OPTS"
-	fi
-	
+
 	HDF5=$PWD
 	../configure --disable-fortran $HDF5_OPTS
 	make -i -j 16
@@ -192,10 +197,12 @@ do
         fi
 	cd ../../
     else
-	if [ $i == develop ] || [ $i == 1_10 ]; then
-            PRE=$i
-        fi
-        HDF5=$TOPDIR/hdf5/build_$PRE
+        if [[ $i =~ ^[0-9].* ]]; then
+	    HDF5=$TOPDIR/hdf5/build_1_$i
+	else
+	    HDF5=$TOPDIR/hdf5/build_$i
+            ONE=""
+	fi
     fi
 
 # Build NETCDF
@@ -204,13 +211,26 @@ do
 
     if [ $NETCDFBUILD = 1 ]; then
 
-        export CPPFLAGS="-I$HDF5/hdf5/include"
-        export LDFLAGS="-L$HDF5/hdf5/lib"
+        if [ -d "$HDF5/hdf5/include" ]; then
+            export CPPFLAGS="-I$HDF5/hdf5/include"
+            export LDFLAGS="-L$HDF5/hdf5/lib"
+        else
+	    echo "Incorrect NETCDF's HDF5 path $HDF5/hdf5"
+	    exit $status
+        fi
+        
+      #  H5_VERS_MINOR=`grep '#define H5_VERS_MINOR' $HDF5/hdf5/include/H5public.h | awk '{print $3}'`
+      #  if (( $H5_VERS_MINOR > 10 )); then
+      #      export CFLAGS="-DH5_USE_110_API"
+      #  fi 
 
         tar xvzf netcdf-c-4.6.2.tar.gz
 
-        mkdir ${TOPDIR}/NETCDF.$i
-        
+        if [ -d "${TOPDIR}/NETCDF.$i" ]; then
+            rm -fr ${TOPDIR}/NETCDF.$i/*
+        else
+            mkdir ${TOPDIR}/NETCDF.$i
+        fi
 	cd ${TOPDIR}/NETCDF.$i
 
         CONFDIR="${TOPDIR}/netcdf-c-4.6.2/"
@@ -233,6 +253,7 @@ do
 	    echo "NETCDF make check (build) #FAILED"
 	    exit $status
 	fi
+      #  export CFLAGS=""
     fi
 
     if [ $TEST = 1 ]; then
@@ -241,8 +262,8 @@ do
         /usr/bin/time -v -f "%e real" -o "results" make -i check
 
         j0=$(printf "%02d" $j)
-        { echo -n "$PRE " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/netcdf_time_$j0
-        { echo -n "$PRE " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/netcdf_mem_$j0
+        { echo -n "$ONE$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/netcdf_time_$j0
+        { echo -n "$ONE$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/netcdf_mem_$j0
     fi
 #    if [ $NETCDFBUILD = 1 ]; then
 #        if [ $TEST = 1 ]; then

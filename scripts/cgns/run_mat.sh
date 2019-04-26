@@ -123,6 +123,7 @@ VER_HDF5_2="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21"
 VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 1_10 HDFFV-10658-performance-drop-for-1-10 develop HDFFV-10658-performance-drop-from-1-8"
 
 VER_HDF5="$VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
+VER_HDF5="10_3 10_4 10_5 merge_hyperslab_update_01 refactor_obj_create_params develop"
 #VER_HDF5="8_1"
 export LIBS="-ldl"
 export FLIBS="-ldl"

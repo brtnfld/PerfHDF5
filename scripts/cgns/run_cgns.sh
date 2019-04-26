@@ -26,6 +26,14 @@ mag=$'\e[1;35m'
 cyn=$'\e[1;36m'
 nc='\033[0m' # No Color
 
+printf "$cyn ***************************\n"
+printf "   _____________   _______\n"
+printf "  / ____/ ____/ | / / ___/\n"
+printf " / /   / / __/  |/ /\__ \ \n"
+printf "/ /___/ /_/ / /|  /___/ / \n"
+printf "\____/\____/_/ |_//____/  \n"
+printf " *******************************$nc\n"
+
 PARALLEL=0
 HDF5BUILD=1
 CGNSBUILD=1
@@ -122,15 +130,19 @@ VER_HDF5_1="8_7 8_8 8_9 8_10-patch1"
 VER_HDF5_2="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21"
 VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 develop"
 
-VER_HDF5="$VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
+#VER_HDF5="$VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
 #VER_HDF5="$VER_HDF5_3"
 #VER_HDF5="develop hyperslab_updates"
+VER_HDF5="10_3 10_4 10_5 merge_hyperslab_update_01 refactor_obj_create_params develop"
 
 export LIBS="-ldl"
 export FLIBS="-ldl"
 #export LIBS="-Wl,--no-as-needed -ldl"
 
 if [  $HDF5BUILD = 1 ]; then
+    if [ -d "hdf5" ]; then
+        rm -fr hdf5
+    fi
     git clone https://brtnfld@bitbucket.hdfgroup.org/scm/hdffv/hdf5.git
 fi
 
