@@ -1,0 +1,6 @@
+This directory contains tests from HDF Performance Framework 1.0.
+These tests do not require MPI.
+
+* src/efc_no.c: No external file cache test
+
+
