@@ -9,14 +9,14 @@
 #
 # Build different versions of the general program
 #
-#./run_gen.sh --enable-parallel --hdf5_nobuild --notest
+#./run_gen.sh --enable-parallel --hdf5_nobuild --notest --src source
 #
 # Build both, no testing
 #
-# ./run_gen.sh --enable-parallel --notest
+# ./run_gen.sh --enable-parallel --notest --src source
 #
 # run the tests
-# ./run_gen.sh --enable-parallel --hdf5_nobuild --gen_nobuild --ptest 4 2014
+# ./run_gen.sh --enable-parallel --hdf5_nobuild --gen_nobuild --ptest 4 <ARGS> --src source
 
 red=$'\e[1;31m'
 grn=$'\e[1;32m'
@@ -71,7 +71,7 @@ case $key in
     ;;
     --ptest)
     NPROCS="$2" # Number of processes
-    NELEM="$3" # Size of parallel problem
+    ARGS="$3" # Size of parallel problem
     shift # past argument
     shift # past value
     shift # past value
@@ -137,7 +137,7 @@ VER_HDF5_2="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21"
 VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 1_10 HDFFV-10658-performance-drop-for-1-10 develop HDFFV-10658-performance-drop-from-1-8"
 
 VER_HDF5="$VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
-VER_HDF5="10_3 10_4 10_5 develop"
+#VER_HDF5="10_3 10_4 10_5 develop"
 #VER_HDF5="8_1"
 export LIBS="-ldl"
 export FLIBS="-ldl"
@@ -219,7 +219,7 @@ do
 	fi
     fi
     if [ $TEST = 1 ]; then
-        /usr/bin/time -v -f "%e real" -o "results" $MPIEXEC ./$EXEC
+        /usr/bin/time -v -f "%e real" -o "results" $MPIEXEC ./$EXEC $ARGS
         rm -fr *.h5
         j0=$(printf "%02d" $j)
         { echo -n "$ONE$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/gen_time_$j0
