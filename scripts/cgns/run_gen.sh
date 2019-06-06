@@ -17,7 +17,11 @@
 #
 # run the tests
 # ./run_gen.sh --enable-parallel --hdf5_nobuild --gen_nobuild --ptest 4 <ARGS> --src source
-
+#
+# ./run_gen.sh --enable-parallel --notest --gen_nobuild --src Sample_hdf5_measure_time.c
+# ./run_gen.sh --enable-parallel --hdf5_nobuild --notest --src Sample_hdf5_measure_time.c
+# ./run_gen.sh --enable-parallel --hdf5_nobuild --gen_nobuild --ptest 336 -t --src Sample_hdf5_measure_time.c
+#
 red=$'\e[1;31m'
 grn=$'\e[1;32m'
 yel=$'\e[1;33m'
@@ -36,7 +40,6 @@ PRE="1."
 NPROCS=8
 TOPDIR=$PWD
 NELEM=65536
-
 POSITIONAL=()
 while [[ $# -gt 0 ]]
 do
@@ -83,7 +86,7 @@ case $key in
     ;;
 esac
 done
-
+HOSTNAME=`hostname -d`
 host=$HOSTNAME
 OPTS=""
 if [[ $PARALLEL != 1 ]]; then
@@ -115,6 +118,7 @@ else
        export CC="mpicc"
        export FC="mpif90"
        export F77="mpif90"
+       DEF="-DSUMMIT"
    fi
 
 #DEFAULT
@@ -131,11 +135,10 @@ fi
 #
 
 # List of all the HDF5 versions to run through
-VER_HDF5_0="6_0 6_1 6_2 6_5 6_6 6_7 6_8 6_9 6_10"
-VER_HDF5_1="$VER_HDF5_0 8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6 8_7 8_8 8_9 8_10-patch1"
+#VER_HDF5_0="6_0 6_1 6_2 6_5 6_6 6_7 6_8 6_9 6_10"
+VER_HDF5_1="$VER_HDF5_0 8_5-patch1 8_6 8_7 8_8 8_9 8_10-patch1"
 VER_HDF5_2="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21"
-VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 1_10 HDFFV-10658-performance-drop-for-1-10 develop HDFFV-10658-performance-drop-from-1-8"
-
+VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 1_10 develop"
 VER_HDF5="$VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
 #VER_HDF5="10_3 10_4 10_5 develop"
 #VER_HDF5="8_1"
@@ -157,21 +160,32 @@ do
     ONE="1."
     if [  $HDF5BUILD = 1 ]; then
 	cd hdf5
-
+        if [[ $i == 8*  || $i == 6* ]]; then
+          wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.guess
+          wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.sub
+        fi
+        
         if [[ $i =~ ^[0-9].* ]]; then
 	    git checkout tags/hdf5-1_$i
-	    rm -fr build_1_$i
-	    mkdir build_1_$i
-	    cd build_1_$i
+            BUILD_DIR=build_1_$i
+            if [[ "$host" == *"summit"* ]]; then
+              if [[ $i == 8*  || $i == 6* ]]; then
+                wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.guess
+                wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.sub
+                autoreconf -ivf 
+              fi
+            fi
 	else
 	    git checkout $i
 	    ./autogen.sh
-	    rm -fr build_$i
-	    mkdir build_$i
-	    cd build_$i
+            BUILD_DIR=build_$i
             ONE=""
 	fi
-	
+
+        rm -fr $BUILD_DIR
+        mkdir $BUILD_DIR
+        cd $BUILD_DIR
+
         CXXFLAGS=""
 	if [[ $i == 8*  || $i == 6* ]]; then
 	    HDF5_OPTS="--enable-production $OPTS"
@@ -200,30 +214,33 @@ do
 	cd ../../
     else
         if [[ $i =~ ^[0-9].* ]]; then
-	    HDF5=$TOPDIR/hdf5/build_1_$i
+            BUILD_DIR=build_1_$i
+	    HDF5=$TOPDIR/hdf5/$BUILD_DIR
 	else
-	    HDF5=$TOPDIR/hdf5/build_$i
+            BUILD_DIR=build_$i
+	    HDF5=$TOPDIR/hdf5/$BUILD_DIR
             ONE=""
 	fi
     fi
-
 # Build EXAMPLE
     if [ $GENBUILD = 1 ]; then
-        echo "$HDF5/hdf5/bin/h5pcc -o $EXEC $SRC"
-        $HDF5/hdf5/bin/h5pcc $CFLAGS -o $EXEC $SRC
+        echo "$HDF5/hdf5/bin/h5pcc -o ${EXEC}_${BUILD_DIR} $DEF $SRC"
+        $HDF5/hdf5/bin/h5pcc $CFLAGS -o ${EXEC}_${BUILD_DIR} $DEF $SRC
 	status=$?
 	if [[ $status != 0 ]]; then
             echo "FAILED TO COMPILE $SRC"
-            rm -f $EXEC
+            rm -f ${EXEC}_${BUILD_DIR}
 	    exit $status
 	fi
     fi
     if [ $TEST = 1 ]; then
-        /usr/bin/time -v -f "%e real" -o "results" $MPIEXEC ./$EXEC $ARGS
+        echo "$MPIEXEC ./${EXEC}_${BUILD_DIR} $ARGS"
+        $MPIEXEC ./${EXEC}_${BUILD_DIR} $ARGS 
+ #       /usr/bin/time -v -f "%e real" -o "results" $MPIEXEC ./${EXEC}_${BUILD_DIR} $ARGS
         rm -fr *.h5
-        j0=$(printf "%02d" $j)
-        { echo -n "$ONE$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/gen_time_$j0
-        { echo -n "$ONE$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/gen_mem_$j0
+        #j0=$(printf "%02d" $j)
+        #{ echo -n "$ONE$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/gen_time_$j0
+        #{ echo -n "$ONE$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/gen_mem_$j0
     fi
     if [ $GENBUILD = 1 ]; then
         if [ $TEST = 1 ]; then
