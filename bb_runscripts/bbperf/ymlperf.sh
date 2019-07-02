@@ -59,16 +59,16 @@ DATASTORE="{\"generator\": \""
 DATASTORE=$DATASTORE"$GENERATOR"
 DATASTORE=$DATASTORE"\", \"scheduler\": \""
 DATASTORE=$DATASTORE"$SCHEDULE"
-DATASTORE=$DATASTORE"\", \"modules\": {\"use\": \"/opt/pkgs/modules/all\"}, \"toolsets\": [\"default\"], \"compilers\": [\"C\", \"Fortran\"]}"
+DATASTORE=$DATASTORE"\", \"modules\": {\"use\": \"/opt/pkgs/modules/all\"}, \"toolsets\": {\"default\": [\"default\"], \"MPI\": [\"default\"]}, \"compilers\": [\"C\", \"Fortran\"]}"
 
 mkdir $CONFIG
 cd $CONFIG
-python ../doftp.py $HOST $DIRN scripts . doftp.py
+python ../doftp.py $HOST $DIRN scripts3 . doftp.py
 
 mkdir build
 cd build
 # Main configuration file
-python ../doftp.py $HOST $DIRN scripts . bbtconf.json
+python ../doftp.py $HOST $DIRN scripts3 . bbtconf.json
 #
 if [ "$SCHEDULE" == "change" ]
 then
@@ -83,47 +83,58 @@ fi
 # Product configuration file
 python ../doftp.py $HOST $DIRN $PRODUCT/ . $CONFFILE
 # Platform configuration file
-python ../doftp.py $HOST $DIRN scripts . bbsystems.json
-
-#
-python ../doftp.py $HOST $DIRN scripts . doyDistributeGet.py
-python ./doyDistributeGet.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG $PRODUCT $CONFFILE
+python ../doftp.py $HOST $DIRN scripts3 . bbsystems.json
 #
 if [ "$SCHEDULE" != "change" ]
 then
-  python ../doftp.py $HOST $DIRN scripts . doySourceftp.py
-  python ../doftp.py $HOST $DIRN scripts . doysrcuncompress.py
+  python ../doftp.py $HOST $DIRN scripts3 . doySourceftp.py
+  python ../doftp.py $HOST $DIRN scripts3 . doysrcuncompress.py
 #
-  python ./doySourceftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG $PRODUCT $CONFFILE
+  python ./doySourceftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG $PRODUCT/ $CONFFILE
   python ./doysrcuncompress.py $PLATFORM $CONFIG hdfsrc $CONFFILE
 fi
 #
-mkdir ctest
-cd ctest
+mkdir autotools
+cd autotools
 #
 # Product configuration file
 python ../../doftp.py $HOST $DIRN $PRODUCT/ . $CONFFILE
 #
-python ../../doftp.py $HOST $DIRN scripts . readJSON.py
+python ../../doftp.py $HOST $DIRN scripts3 . readJSON.py
 #
-python ../../doftp.py $HOST $DIRN scripts . doyftpuncompress.py
-python ./doyftpuncompress.py $HOST $DIRN $PLATFORM $OSSIZE $PLATFORM $CONFIG bbparams ctest insbin $CONFFILE "$DATASTORE"
+mkdir util_functions
+python ../../doftp.py $HOST $DIRN scripts3/util_functions util_functions __init__.py
+python ../../doftp.py $HOST $DIRN scripts3/util_functions util_functions util_functions.py
+python ../../doftp.py $HOST $DIRN scripts3/util_functions util_functions at_functions.py
+python ../../doftp.py $HOST $DIRN scripts3/util_functions util_functions ct_functions.py
+python ../../doftp.py $HOST $DIRN scripts3/util_functions util_functions cdash_functions.py
+python ../../doftp.py $HOST $DIRN scripts3/util_functions util_functions step_functions.py
+python ../../doftp.py $HOST $DIRN scripts3/util_functions util_functions ctest_log_parser.py
+python ../../doftp.py $HOST $DIRN scripts3/util_functions util_functions log_parse.py
+python ../../doftp.py $HOST $DIRN scripts3/util_functions util_functions six.py
 #
-python ../../doftp.py $HOST $DIRN scripts . doyinstall.py
-python ./doyinstall.py $PLATFORM $CONFIG bbparams $CONFFILE ctest insbin install
+python ../../doftp.py $HOST $DIRN scripts3 . doyDistributeGet.py
+python ./doyDistributeGet.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG bbparams $CONFFILE
 #
-python ../../doftp.py $HOST $DIRN scripts . doyFilesftp.py
-python ../../doftp.py $HOST $DIRN scripts . doyCTbuild.py
+python ../../doftp.py $HOST $DIRN scripts3 . doyFilesftp.py
+python ./doyFilesftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG bbparams autotools DTP/extra $CONFFILE
+python ../../doftp.py $HOST $DIRN scripts3 . doyATbuild.py
 #
-#combust_io
+#combust_io test
+python ./doyFilesftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG combust_io autotools DTP/extra $CONFFILE
+python ./doyATbuild.py $HOST $DIRN $CONFFILE $CONFIG combust_io $PLATFORM $OSSIZE insbin $SCHEDULE "$DATASTORE"
 #
-#h5core
+#h5core test
+python ./doyFilesftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG h5core autotools DTP/extra $CONFFILE
+python ./doyATbuild.py $HOST $DIRN $CONFFILE $CONFIG h5core $PLATFORM $OSSIZE insbin $SCHEDULE "$DATASTORE"
 #
-#h5perf
-python ./doyFilesftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG h5perf ctest DTP/extra $CONFFILE
-python ./doyCTbuild.py $CONFFILE $CONFIG h5perf ctest $PLATFORM "$DATASTORE"
+#h5perf test
+python ./doyFilesftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG h5perf autotools DTP/extra $CONFFILE
+python ./doyATbuild.py $HOST $DIRN $CONFFILE $CONFIG h5perf $PLATFORM $OSSIZE insbin $SCHEDULE "$DATASTORE"
 #
-#seism-core
+#seism-core test
+python ./doyFilesftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG seism-core autotools DTP/extra $CONFFILE
+python ./doyATbuild.py $HOST $DIRN $CONFFILE $CONFIG seism-core $PLATFORM $OSSIZE insbin $SCHEDULE "$DATASTORE"
 #
 python ./readJSON.py
 #

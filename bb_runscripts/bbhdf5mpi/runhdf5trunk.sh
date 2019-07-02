@@ -13,6 +13,23 @@
 # "osx1012",
 # "osx1013",
 # "osx1014",
+
+USAGE()
+{
+cat << EOF
+Usage: $0 <platform>
+   Run tests for <platform>
+
+EOF
+
+}
+
+
+if [ $# != 1 ]; then
+    USAGE
+    exit 1
+fi
+
 PLATFORM="$1"
 
 CONFFILE=bbtconf.json
@@ -46,7 +63,7 @@ DATASTORE="{\"generator\": \""
 DATASTORE=$DATASTORE"$GENERATOR"
 DATASTORE=$DATASTORE"\", \"scheduler\": \""
 DATASTORE=$DATASTORE"$SCHEDULE"
-DATASTORE=$DATASTORE"\", \"modules\": {\"use\": \"/opt/pkgs/modules/all\"}, \"toolsets\": [\"default\"], \"compilers\": [\"C\", \"Fortran\", \"Java\"]}"
+DATASTORE=$DATASTORE"\", \"modules\": {\"use\": \"/opt/pkgs/modules/all\"}, \"toolsets\": {\"default\": [\"default\"]}, \"compilers\": [\"C\", \"Fortran\", \"Java\"]}"
 
 mkdir $CONFIG
 cd $CONFIG
@@ -70,14 +87,6 @@ fi
 python ../doftp.py $HOST $DIRN $PRODUCT/ . $CONFFILE
 # Platform configuration file
 python ../doftp.py $HOST $DIRN scripts . bbsystems.json
-
-#
-python ../doftp.py $HOST $DIRN scripts . doDistributeGet.py
-python ./doDistributeGet.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG $PRODUCT/ $CONFFILE
-python ../doftp.py $HOST $DIRN scripts . doftpuncompress.py
-python ./doftpuncompress.py $HOST $DIRN $PLATFORM $OSSIZE $PLATFORM $CONFIG bbparams autotools insbin $CONFFILE "$DATASTORE"
-python ../doftp.py $HOST $DIRN scripts . doatlin.py
-python ./doatlin.py insbin $CONFIG bbparams autotools $CONFFILE
 #
 if [ "$SCHEDULE" != "change" ]
 then
@@ -96,20 +105,26 @@ python ../../doftp.py $HOST $DIRN $PRODUCT/ . $CONFFILE
 #
 python ../../doftp.py $HOST $DIRN scripts . readJSON.py
 #
+mkdir util_functions
+python ../../doftp.py $HOST $DIRN scripts/util_functions util_functions __init__.py
+python ../../doftp.py $HOST $DIRN scripts/util_functions util_functions util_functions.py
+python ../../doftp.py $HOST $DIRN scripts/util_functions util_functions at_functions.py
+python ../../doftp.py $HOST $DIRN scripts/util_functions util_functions ct_functions.py
+python ../../doftp.py $HOST $DIRN scripts/util_functions util_functions cdash_functions.py
+python ../../doftp.py $HOST $DIRN scripts/util_functions util_functions step_functions.py
+python ../../doftp.py $HOST $DIRN scripts/util_functions util_functions ctest_log_parser.py
+python ../../doftp.py $HOST $DIRN scripts/util_functions util_functions log_parse.py
+python ../../doftp.py $HOST $DIRN scripts/util_functions util_functions six.py
+#
+python ../../doftp.py $HOST $DIRN scripts . doDistributeGet.py
+python ./doDistributeGet.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG bbparams $CONFFILE
+#
 python ../../doftp.py $HOST $DIRN scripts . doFilesftp.py
 python ./doFilesftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG bbparams autotools DTP/extra $CONFFILE
 python ../../doftp.py $HOST $DIRN scripts . doATbuild.py
-python ./doATbuild.py $CONFFILE $CONFIG bbparams $PLATFORM insbin $SCHEDULE "$DATASTORE"
-python ../../doftp.py $HOST $DIRN scripts . doATinstall.py
-python ./doATinstall.py $CONFFILE $CONFIG bbparams $PLATFORM $SCHEDULE "$DATASTORE"
-python ../../doftp.py $HOST $DIRN scripts . doATinstallcheck.py
-python ./doATinstallcheck.py $CONFFILE $CONFIG bbparams $PLATFORM $SCHEDULE "$DATASTORE"
-python ../../doftp.py $HOST $DIRN scripts . doATpackage.py
-python ./doATpackage.py $CONFFILE $CONFIG bbparams $PLATFORM $OSSIZE $SCHEDULE
+python ./doATbuild.py $HOST $DIRN $CONFFILE $CONFIG bbparams $PLATFORM $OSSIZE insbin $SCHEDULE "$DATASTORE"
 python ../../doftp.py $HOST $DIRN scripts . dobtftpup.py
-python ./dobtftpup.py $HOST $DIRN $PLATFORM $OSSIZE $PLATFORM $CONFIG bbparams autotools "$GENERATOR" $PRODUCT $CONFFILE
-python ../../doftp.py $HOST $DIRN scripts . doATuninstall.py
-python ./doATuninstall.py $CONFFILE $CONFIG bbparams $PLATFORM $SCHEDULE "$DATASTORE"
+python ./dobtftpup.py $HOST $DIRN $PLATFORM $OSSIZE $PLATFORM $CONFIG bbparams autotools $PRODUCT $CONFFILE "$DATASTORE"
 #
 python ./readJSON.py
 #

@@ -119,7 +119,7 @@ def main(argv):
             print ('File {} downloaded'.format(filename))
         except Exception as e:
             thereturncode = 255
-            print ('ERROR: cannot read file "{}"'.format(filename))
+            print ('ERROR: cannot read file {}'.format(filename))
 
         os.chdir(currdir) ####
         sftpclient.close()

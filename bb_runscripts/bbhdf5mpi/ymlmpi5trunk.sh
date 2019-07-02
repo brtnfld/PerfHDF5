@@ -46,7 +46,7 @@ DIRN='/mnt/ftp/pub/outgoing/QATEST/'
 GENERATOR='Unix Makefiles'
 OSSIZE=64
 
-CONFIG=StdShar
+CONFIG=StdMPIShar
 
 # TOOLSET list
 # "default",
@@ -63,7 +63,7 @@ DATASTORE="{\"generator\": \""
 DATASTORE=$DATASTORE"$GENERATOR"
 DATASTORE=$DATASTORE"\", \"scheduler\": \""
 DATASTORE=$DATASTORE"$SCHEDULE"
-DATASTORE=$DATASTORE"\", \"modules\": {\"use\": \"/opt/pkgs/modules/all\"}, \"toolsets\": {\"default\": [\"default\"]}, \"compilers\": [\"C\", \"Fortran\", \"Java\"]}"
+DATASTORE=$DATASTORE"\", \"modules\": {\"use\": \"/opt/pkgs/modules/all\"}, \"toolsets\": {\"default\": [\"default\"]}, \"compilers\": [\"C\", \"Fortran\"]}"
 
 mkdir $CONFIG
 cd $CONFIG
@@ -99,6 +99,7 @@ fi
 #
 mkdir autotools
 cd autotools
+#
 #
 # Product configuration file
 python ../../doftp.py $HOST $DIRN $PRODUCT/ . $CONFFILE

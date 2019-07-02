@@ -59,7 +59,7 @@ DATASTORE="{\"generator\": \""
 DATASTORE=$DATASTORE"$GENERATOR"
 DATASTORE=$DATASTORE"\", \"scheduler\": \""
 DATASTORE=$DATASTORE"$SCHEDULE"
-DATASTORE=$DATASTORE"\", \"modules\": {\"use\": \"/opt/pkgs/modules/all\"}, \"toolsets\": [\"default\"], \"compilers\": [\"C\", \"Fortran\", \"Java\"]}"
+DATASTORE=$DATASTORE"\", \"modules\": {\"use\": \"/opt/pkgs/modules/all\"}, \"toolsets\": {\"default\": [\"default\"], \"MPI\": [\"default\"]}, \"compilers\": [\"C\", \"Fortran\"]}"
 
 mkdir $CONFIG
 cd $CONFIG
@@ -84,14 +84,6 @@ fi
 python ../doftp.py $HOST $DIRN $PRODUCT/ . $CONFFILE
 # Platform configuration file
 python ../doftp.py $HOST $DIRN scripts . bbsystems.json
-
-#
-python ../doftp.py $HOST $DIRN scripts . doDistributeGet.py
-python ./doDistributeGet.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG $PRODUCT/ $CONFFILE
-python ../doftp.py $HOST $DIRN scripts . doftpuncompress.py
-python ./doftpuncompress.py $HOST $DIRN $PLATFORM $OSSIZE $PLATFORM $CONFIG bbparams autotools insbin $CONFFILE "$DATASTORE"
-python ../doftp.py $HOST $DIRN scripts . doatlin.py
-python ./doatlin.py insbin $CONFIG bbparams autotools $CONFFILE
 #
 if [ "$SCHEDULE" != "change" ]
 then
@@ -105,30 +97,44 @@ fi
 mkdir autotools
 cd autotools
 #
-python ../../doftp.py $HOST $DIRN scripts . doFilesftp.py
-python ../../doftp.py $HOST $DIRN scripts . doATbuild.py
 # Product configuration file
 python ../../doftp.py $HOST $DIRN $PRODUCT/ . $CONFFILE
 #
 python ../../doftp.py $HOST $DIRN scripts . readJSON.py
 #
+mkdir util_functions
+python ../../doftp.py $HOST $DIRN scripts/util_functions util_functions __init__.py
+python ../../doftp.py $HOST $DIRN scripts/util_functions util_functions util_functions.py
+python ../../doftp.py $HOST $DIRN scripts/util_functions util_functions at_functions.py
+python ../../doftp.py $HOST $DIRN scripts/util_functions util_functions ct_functions.py
+python ../../doftp.py $HOST $DIRN scripts/util_functions util_functions cdash_functions.py
+python ../../doftp.py $HOST $DIRN scripts/util_functions util_functions step_functions.py
+python ../../doftp.py $HOST $DIRN scripts/util_functions util_functions ctest_log_parser.py
+python ../../doftp.py $HOST $DIRN scripts/util_functions util_functions log_parse.py
+python ../../doftp.py $HOST $DIRN scripts/util_functions util_functions six.py
+#
+python ../../doftp.py $HOST $DIRN scripts . doDistributeGet.py
+python ./doDistributeGet.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG bbparams $CONFFILE
+#
+python ../../doftp.py $HOST $DIRN scripts . doFilesftp.py
 python ./doFilesftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG bbparams autotools DTP/extra $CONFFILE
+python ../../doftp.py $HOST $DIRN scripts . doATbuild.py
 #
 #combust_io test
 python ./doFilesftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG combust_io autotools DTP/extra $CONFFILE
-python ./doATbuild.py $CONFFILE $CONFIG combust_io $PLATFORM insbin $SCHEDULE "$DATASTORE"
+python ./doATbuild.py $HOST $DIRN $CONFFILE $CONFIG combust_io $PLATFORM $OSSIZE insbin $SCHEDULE "$DATASTORE"
 #
 #h5core test
 python ./doFilesftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG h5core autotools DTP/extra $CONFFILE
-python ./doATbuild.py $CONFFILE $CONFIG h5core $PLATFORM insbin $SCHEDULE "$DATASTORE"
+python ./doATbuild.py $HOST $DIRN $CONFFILE $CONFIG h5core $PLATFORM $OSSIZE insbin $SCHEDULE "$DATASTORE"
 #
 #h5perf test
 python ./doFilesftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG h5perf autotools DTP/extra $CONFFILE
-python ./doATbuild.py $CONFFILE $CONFIG h5perf $PLATFORM insbin $SCHEDULE "$DATASTORE"
+python ./doATbuild.py $HOST $DIRN $CONFFILE $CONFIG h5perf $PLATFORM $OSSIZE insbin $SCHEDULE "$DATASTORE"
 #
 #seism-core test
 python ./doFilesftp.py $HOST $DIRN $PLATFORM $PLATFORM $CONFIG seism-core autotools DTP/extra $CONFFILE
-python ./doATbuild.py $CONFFILE $CONFIG seism-core $PLATFORM insbin $SCHEDULE "$DATASTORE"
+python ./doATbuild.py $HOST $DIRN $CONFFILE $CONFIG seism-core $PLATFORM $OSSIZE insbin $SCHEDULE "$DATASTORE"
 #
 python ./readJSON.py
 #
