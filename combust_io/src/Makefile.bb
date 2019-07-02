@@ -24,14 +24,14 @@ TEST_NAME=./kernel.x
 TEST_CMD=$(RUNEXEC) $(TEST_NAME)
 
 check:
+	sh ./prep_data.bb 4
 	tname=$(TEST_NAME);\
         log=$${tname}.chklog; \
         echo "============================" | tee $${log}; \
         echo "Testing $(HDF5_DRIVER) $${tname} $(TEST_FLAGS)"; \
         echo "$(HDF5_DRIVER) $${tname} $(TEST_FLAGS) Test Log" | tee -a $${log}; \
         echo "============================" | tee -a $${log}; \
-	sh ./prep_data.bb 4
-	srcdir="$(srcdir)" \
+        srcdir="$(srcdir)" \
            && $(RUNPARALLEL) $(TEST_CMD) | tee -a $${log} 2>&1 \
            && touch $${tname}.chkexe || \
            (test $$HDF5_Make_Ignore && echo "*** Error ignored") || \
