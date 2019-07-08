@@ -1,6 +1,7 @@
 #!/usr/bin/make
 
-INCLUDES=${CURDIR}/../../insbin/hdf5/include
+INCLUDES=
+include bbincludes.mk
 CXXFLAGS=-Wall -pedantic -O2 -std=c++0x -I$(INCLUDES)
 CXXDEBUGFLAGS=-Wall -pedantic -O0 -g -std=c++0x -I$(INCLUDES)
 
