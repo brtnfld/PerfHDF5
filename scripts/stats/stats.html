@@ -1,0 +1,427 @@
+<!--
+# Copyright by The HDF Group.
+# All rights reserved.
+#
+# This file is part of HDF5.  The full HDF5 copyright notice, including
+# terms governing use, modification, and redistribution, is contained in
+# the COPYING file, which can be found at the root of the source code
+# distribution tree, or in https://support.hdfgroup.org/ftp/HDF5/releases.
+# If you do not have access to either file, you may request a copy from
+# help@hdfgroup.org.
+-->
+
+<!DOCTYPE HTML>
+<html>
+<body>
+<h1>HDF5 Performance Dashboard</h1>
+
+<div id="chartsContainer"></div>
+<div id="warnings"></div>
+
+<script>
+window.onload = function() {
+  
+  $.ajaxSetup({cache: false});
+  
+  var nfiles=20;
+  var files=[];
+  
+  var year=2019;
+  
+  // Convert months to numbers
+  var months = {
+    'Jan' : '00',
+    'Feb' : '01',
+    'Mar' : '02',
+    'Apr' : '03',
+    'May' : '04',
+    'Jun' : '05',
+    'Jul' : '06',
+    'Aug' : '07',
+    'Sep' : '08',
+    'Oct' : '09',
+    'Nov' : '10',
+    'Dec' : '11'
+  };
+  
+  // Color sections
+  var write_primary="#F6FFA8"
+  var read_primary="#A8D5FF"
+  var good_perf="#598c6a"
+  var bad_perf="#ba5b4c"
+  
+  // warning string
+  var warn='<div class="content"><br>';
+  
+  for (var i = 0; i < nfiles; i++) {
+    var num = 240+i; // day of the year
+    files[i] = "http://marmot:8888/data/ior-" + year + "-" + num.toString() + ".json";
+  }
+  
+  getJson(files, function(dataPoints_mean_w, dataPoints_mean_r, dataPoints_minmax_w, dataPoints_minmax_r ) {
+    
+    var charts = [];
+    
+    var chartOptions1 = {
+      animationEnabled: true,
+      zoomEnabled: true,
+      zoomType: "x",
+      theme:"dark1",
+      backgroundColor: "#222233",
+      legend:{
+        fontSize: 14
+      },
+      title: {
+        text: "IOR, Cori Performance"
+      },
+      axisX:{
+        interval: 1,
+        intervalType: "day",
+        labelAngle: 40,
+        valueFormatString: "DD MMM,YYYY"
+      },
+      axisY: {
+        title: "Bandwidth, MiB/s",
+        titleFontWeight: "bold",
+        logarithmic: true,
+        includeZero: false
+      },
+      toolTip:{
+        shared: true
+      },
+      data: [{
+        name: "Write",
+        type: "scatter",
+        color: write_primary,
+        yValueFormatString: "#,##0.0",
+        showInLegend: true,
+        dataPoints: dataPoints_mean_w
+      },
+      {
+        name: "Read",
+        type: "scatter",
+        markerType: "triangle",
+        color: read_primary,
+        yValueFormatString: "#,##0",
+        showInLegend: true,
+        dataPoints: dataPoints_mean_r
+      },
+      {
+        name: "Max Min Write",
+        type: "error",
+        color: write_primary,
+        whiskerLength: 10,
+        whiskerThickness: 2,
+        yValueFormatString: "#,##0",
+        showInLegend: false,
+        dataPoints: dataPoints_minmax_w
+      },
+      {
+        name: "Max Min Read",
+        type: "error",
+        whiskerLength: 10,
+        whiskerThickness: 2,
+        yValueFormatString: "#,##0",
+        color: read_primary,
+        showInLegend: false,
+        dataPoints: dataPoints_minmax_r
+      }],
+      rangeChanged: syncHandler
+    };
+    
+    var chartOptions2 = {
+      animationEnabled: true,
+      zoomEnabled: true,
+      zoomType: "x",
+      theme:"dark1",
+      backgroundColor: "#222233",
+      axisX:{
+        interval: 1,
+        intervalType: "day",
+        labelAngle: 40,
+        valueFormatString: "DD MMM,YYYY"
+      },
+      dataPointWidth: 10,
+      axisY: {
+        stripLines:[{
+          startValue:0,
+          endValue:-100,
+          color: bad_perf
+        },
+        {
+          startValue:0,
+          endValue:100,
+          color: good_perf
+        }],
+        title: "% Change of SMA",
+        titleFontWeight: "bold",
+        //   logarithmic: true,
+      },
+      toolTip:{
+        shared: true
+      },
+      data: [
+        {
+          name: "% Change of SMA of Write",
+          type: "column",
+          indexLabel: "{y}",
+          yValueFormatString: "##.#",
+          indexLabelFontSize: 14,
+          indexLabelFontColor: write_primary,
+          indexLabelFontWeight: "bold",
+          color: write_primary,
+          dataPoints: []
+        },
+        {
+          name: "% Change of SMA of Read",
+          type: "column",
+          indexLabel: "{y}",
+          yValueFormatString: "##.#",
+          indexLabelFontSize: 14,
+          indexLabelFontWeight: "bold",
+          indexLabelFontColor: read_primary,
+          color: read_primary,
+          dataPoints: []
+        },
+      ],
+      rangeChanged: syncHandler
+    };
+    
+    charts.push(createChart("chartContainer1", chartOptions1));
+    charts.push(createChart("chartContainer2", chartOptions2));
+    
+    for(var i = 0; i < charts.length; i++){
+      charts[i].render();
+    }
+    
+    calculateMovingAverage(charts[0]);
+    
+    calculateSMAchange(charts);
+    
+    for(var i = 0; i < charts.length; i++){
+      charts[i].render();
+    }
+    
+    function syncHandler(e) {
+      
+      for (var i = 0; i < charts.length; i++) {
+        var chart = charts[i];
+        if (!chart.options.axisX)
+        chart.options.axisX = {};
+        
+        if (!chart.options.axisY)
+        chart.options.axisY = {};
+        
+        if (e.trigger === "reset") {
+          
+          chart.options.axisX.viewportMinimum = chart.options.axisX.viewportMaximum = null;
+          chart.options.axisY.viewportMinimum = chart.options.axisY.viewportMaximum = null;
+          
+          chart.render();
+          
+        } else if (chart !== e.chart) {
+          
+          chart.options.axisX.viewportMinimum = e.axisX[0].viewportMinimum;
+          chart.options.axisX.viewportMaximum = e.axisX[0].viewportMaximum;
+          
+          chart.options.axisY.viewportMinimum = e.axisY[0].viewportMinimum;
+          chart.options.axisY.viewportMaximum = e.axisY[0].viewportMaximum;
+          
+          chart.render();
+          
+        }
+      }
+    }
+    
+  });
+  
+  
+  function createChart(chartContainerId, chartOptions){
+    var container = document.createElement('div');
+    container.setAttribute("id", chartContainerId);
+    container.style.cssText = "width: 100%; height: 300px";
+    document.getElementById("chartsContainer").appendChild(container);
+    
+    return(new CanvasJS.Chart(chartContainerId, chartOptions));
+  }
+  
+  
+  function getJson(files, callback, currentIndex, dataPoints_mean_w, dataPoints_mean_r, dataPoints_minmax_w, dataPoints_minmax_r) {
+    // 1. Make sure the files array is valid, or throw an error
+    // to stop it form proceeding.
+    
+    // 2. If the currentIndex and data values are not set,
+    // initialize them. They need to be set to 0 and {}
+    // respectively on the first iteration.
+    
+    if( ! currentIndex > 0 ) {
+      var currentIndex = 0;
+      var dataPoints_mean_w = [];
+      var dataPoints_mean_r = [];
+      var dataPoints_minmax_w = [];
+      var dataPoints_var2 = [];
+      var dataPoints_minmax_r = [];
+      var dataPoints_var4 = [];
+    }
+    
+    // 3. Check if the currentIndex is higher than the length
+    // of the files array. If it is, call the callback
+    // function and pass the data object with it.
+    
+    if (currentIndex >= files.length) {
+      //  console.log(dataPoints_mean_w);
+      callback(dataPoints_mean_w,dataPoints_mean_r, dataPoints_minmax_w, dataPoints_minmax_r);
+    }
+    
+    // 4. If the currentIndex is lower than the files array
+    // length, call the next file with $.getJSON:
+    // 5. Make sure the json object is valid, and if it
+    // is, add all the elements from it to the data
+    // object.
+    // console.log(currentIndex);
+    $.getJSON(files[currentIndex++], function(json) {
+      
+      const splitdate = json.Began.split(" ");
+      var dateNo = new Date(splitdate[4],months[splitdate[1]], splitdate[2]);
+      
+      //   console.log(dateNo);
+      for (let i = 0; i < json.summary.length; i++) {
+        if ( json.summary[i].operation == "write") {
+          //   console.log("write " + json.summary[i].bwMeanMIB);
+          dataPoints_minmax_w.push({
+            x: dateNo,
+            y: [json.summary[i].bwMinMIB,json.summary[i].bwMaxMIB]
+          });
+          dataPoints_mean_w.push({
+            x: dateNo,
+            y: json.summary[i].bwMeanMIB
+          });
+        }
+        else if ( json.summary[i].operation == "read") {
+          dataPoints_minmax_r.push({
+            x: dateNo,
+            y: [json.summary[i].bwMinMIB,json.summary[i].bwMaxMIB]
+          });
+          //   console.log("read " + json.summary[i].bwMeanMIB);
+          dataPoints_mean_r.push({
+            x: dateNo,
+            y: json.summary[i].bwMeanMIB
+          });
+        }
+      }
+      
+      // 6. Call the "getJson" function again, passing
+      // all the parameters from this recursion along
+      getJson(files, callback, currentIndex, dataPoints_mean_w, dataPoints_mean_r, dataPoints_minmax_w, dataPoints_minmax_r);
+    });
+  }
+  
+  // Function to calculate n-Day Simple moving average (SMA)
+  function calculateMovingAverage(chart) {
+    var numOfDays = 4;
+    var dsetid = 0;
+    
+    var io_type = ["Write ", "Read ", write_primary, read_primary];
+    
+    // return if there are insufficient dataPoints
+    if(chart.options.data[dsetid].dataPoints.length <= numOfDays) return;
+    else {
+      
+      for (var k = 0; k < 2; k++) {
+        // Add a new line series for Moving Averages
+        chart.options.data.push({
+          type: "line",
+          markerType: "none",
+          name: "% change of SMA",
+          color: io_type[k+2],
+          name: numOfDays.toString().concat("-Day ", io_type[k], "simple-moving-average (SMA)"),
+          yValueFormatString: "#,##0",
+          showInLegend: true,
+          dataPoints: []
+        });
+        var total=0;
+        //  console.log(chart.options.data[dsetid].dataPoints.length);
+        for(var i = numOfDays; i < chart.options.data[dsetid].dataPoints.length; i++) {
+          total = 0;
+          for(var j = (i - numOfDays); j < i; j++) {
+            //   console.log("SMA " + chart.options.data[dsetid].dataPoints[j].y);
+            total += chart.options.data[dsetid].dataPoints[j].y;
+          }
+          //  console.log ("total " + total);
+          // n-Day simple moving average
+          chart.options.data[k+4].dataPoints.push({
+            x: chart.options.data[dsetid].dataPoints[i].x,
+            y: total / numOfDays
+          });
+        }
+        dsetid++;
+      }
+    }
+  }
+  
+  
+  // Function to calculate percent change of SMA
+  //              V  - V
+  //               2    1
+  //  % change =  -------- * 100
+  //               | V |
+  //                  1
+  //
+  
+  function calculateSMAchange(charts) {
+    var numOfDays = 4;
+    var dsetid = 4;
+    
+    var io_type = ["Write ", "Read ","#9591e6","#24d19d"];
+    
+    // return if there are insufficient dataPoints
+    if(charts[0].options.data[dsetid].dataPoints.length <= numOfDays) return;
+    else {
+      for (var k = 0; k < 2; k++) {
+        // Add a new line series for Moving Averages changes
+        
+        var total=0;
+        for(var i = 0; i <  numOfDays + 1; i++) {
+          //    console.log(charts[0].options.data[0].dataPoints[i].x);
+          charts[1].options.data[k].dataPoints.push({
+            x: charts[0].options.data[0].dataPoints[i].x,
+            y: 0
+          });
+        }
+        for(var i = 1; i < charts[0].options.data[dsetid].dataPoints.length; i++) {
+          
+          //   console.log(" % SMA" + charts[0].options.data[dsetid].dataPoints[i].y + " " + charts[0].options.data[dsetid].dataPoints[i-1].y);
+          
+          total=((charts[0].options.data[dsetid].dataPoints[i].y - charts[0].options.data[dsetid].dataPoints[i-1].y)/
+                    Math.abs(charts[0].options.data[dsetid].dataPoints[i-1].y))*100;
+          
+          if( total < -5) {
+            //   document.getElementById("warnings").innerHTML = codeBlock
+            warn += '<img src="http://marmot:8888/images/stop.png" width: "10" /> Severe performance degeneration reported on '
+                      + charts[0].options.data[dsetid].dataPoints[i].x + "</br>";
+          }
+          
+          // n-Day simple moving average
+          charts[1].options.data[k].dataPoints.push({
+            x: charts[0].options.data[dsetid].dataPoints[i].x,
+            y: total
+          });
+        }
+        dsetid++;
+      }
+      warn += '</div>';
+      document.getElementById("warnings").innerHTML = warn;
+    }
+  }
+}
+
+</script>
+
+<script type="text/javascript" src="../js/jquery-3.4.1.min.js"></script>
+<script type="text/javascript" src="../js/jquery.canvasjs.min.js"></script>
+
+<img src="http://marmot:8888/data/stackedlogo.png" width=7% align="right" />
+
+</body>
+</html>
+
