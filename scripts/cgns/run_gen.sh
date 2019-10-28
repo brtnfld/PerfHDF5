@@ -149,13 +149,16 @@ fi
 #
 
 # List of all the HDF5 versions to run through
-#VER_HDF5_0="6_0 6_1 6_2 6_5 6_6 6_7 6_8 6_9 6_10"
-VER_HDF5_1="$VER_HDF5_0 8_5-patch1 8_6 8_7 8_8 8_9 8_10-patch1"
-VER_HDF5_2="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21"
-VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 1_10 1_12 develop"
-VER_HDF5="$VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
-VER_HDF5="develop 1_12 1_10"
-#VER_HDF5="8_1"
+#VER_HDF5_1_6="6_0 6_1 6_2 6_5 6_6 6_7 6_8 6_9 6_10"
+VER_HDF5_1_8a="8_5-patch1 8_6 8_7 8_8 8_9 8_10-patch1"
+VER_HDF5_1_8b="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21"
+VER_HDF5_1_10="10_0-patch1 10_1 10_2 10_3 10_4 10_5"
+VER_HDF5_1_12=""
+VER_HDF5_MISC="hdf5_1_12 hdf5_1_10 develop"
+
+VER_HDF5="$VER_HDF5_1_6 $VER_HDF5_1_8a $VER_HDF5_1_8b $VER_HDF5_1_10 $VER_HDF5_1_12 $VER_HDF5_MISC"
+#VER_HDF5="$VER_HDF5_MISC"
+
 export LIBS="-ldl"
 export FLIBS="-ldl"
 
