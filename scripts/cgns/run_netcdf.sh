@@ -35,7 +35,9 @@ PREFIX=""
 NPROCS=6
 TOPDIR=$PWD
 
-POSITIONAL=()
+# currently unused variables
+printf " %b %b %b %b \n" "$yel" "$blu" "$mag" "$nc" 
+
 while [[ $# -gt 0 ]]
 do
 key="$1"
@@ -139,36 +141,35 @@ if [ $NETCDFBUILD = 1 ]; then
     tar xvzf netcdf-c-4.6.2.tar.gz
 fi
 
-printf "$cyn *******************************************\n"
+printf "%b *******************************************\n" "$cyn" 
 printf "      _   __     __  __________  ______\n"
 printf "     / | / /__  / /_/ ____/ __ \/ ____/\n"
 printf "    /  |/ / _ \/ __/ /   / / / / /_\n"  
 printf "   / /|  /  __/ /_/ /___/ /_/ / __/\n"   
 printf "  /_/ |_/\___/\__/\____/_____/_/\n" 
-printf " ******************************************* $nc\n"
+printf " ******************************************* %b\n" "$nc"
 
 j=0
 for i in ${VER_HDF5}
 
 do
     status=0
-    j=$[j + 1]
+    j=$((j + 1))
 # Build HDF5
-    PRE="1_$i"
     if [  $HDF5BUILD = 1 ]; then
-	cd hdf5
+	cd hdf5 || exit
 
         if [[ $i =~ ^[0-9].* ]]; then
-	    git checkout tags/hdf5-1_$i
-	    rm -fr build_1_$i
-	    mkdir build_1_$i
-	    cd build_1_$i
+	    git checkout tags/hdf5-1_"$i"
+	    rm -fr build_1_"$i"
+	    mkdir build_1_"$i"
+	    cd build_1_"$i" || exit
 	else
-	    git checkout $i
+	    git checkout "$i"
 	    ./autogen.sh
-	    rm -fr build_$i
-	    mkdir build_$i
-	    cd build_$i
+	    rm -fr build_"$i"
+	    mkdir build_"$i"
+	    cd build_"$i" || exit
             ONE=""
 	fi
 	
@@ -182,7 +183,7 @@ do
 	fi
 
 	HDF5=$PWD
-	../configure --disable-fortran $HDF5_OPTS
+	../configure --disable-fortran "$HDF5_OPTS"
 	make -i -j 16
 	status=$?
 	if [[ $status != 0 ]]; then
@@ -226,14 +227,14 @@ do
 
         tar xvzf netcdf-c-4.6.2.tar.gz
 
-        if [ -d "${TOPDIR}/NETCDF.$i" ]; then
-            rm -fr ${TOPDIR}/NETCDF.$i/*
+        if [ -d "${TOPDIR}"/NETCDF."$i" ]; then
+            rm -fr "${TOPDIR}"/NETCDF."$i"/*
         else
-            mkdir ${TOPDIR}/NETCDF.$i
+            mkdir "${TOPDIR}"/NETCDF."$i"
         fi
-	cd ${TOPDIR}/NETCDF.$i
+	cd "${TOPDIR}"/NETCDF."$i" || exit
 
-        CONFDIR="${TOPDIR}/netcdf-c-4.6.2/"
+        CONFDIR="${TOPDIR}"/netcdf-c-4.6.2/
 
 	CONFIG_CMD="$CONFDIR/configure --enable-shared=no \
 	--prefix=$PWD/netcdf $NETCDF_OPTS"
@@ -257,20 +258,20 @@ do
     fi
 
     if [ $TEST = 1 ]; then
-        cd $TOPDIR/NETCDF.$i
+        cd "$TOPDIR"/NETCDF."$i" || exit
       # Time make check (does not include the complilation time)
         /usr/bin/time -v -f "%e real" -o "results" make -i check
 
         j0=$(printf "%02d" $j)
-        { echo -n "$ONE$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/netcdf_time_$j0
-        { echo -n "$ONE$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/netcdf_mem_$j0
+        { echo -n "$ONE$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > "$TOPDIR"/netcdf_time_"$j0"
+        { echo -n "$ONE$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > "$TOPDIR":/netcdf_mem_"$j0"
     fi
 #    if [ $NETCDFBUILD = 1 ]; then
 #        if [ $TEST = 1 ]; then
 #            rm -fr $TOPDIR/NETCDF.$i
 #        fi
 #    fi
-    cd $TOPDIR
+    cd "$TOPDIR" || exit
 done
 
 # Combine the timing numbers to a single file
