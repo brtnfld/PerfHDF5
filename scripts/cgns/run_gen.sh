@@ -30,10 +30,15 @@ mag=$'\e[1;35m'
 cyn=$'\e[1;36m'
 nc='\033[0m' # No Color
 
+export H5_LDFLAGS=""
+
+H5CC=h5cc
+H5FC=h5fc
 PARALLEL=0
 HDF5BUILD=1
 GENBUILD=1
 TEST=1
+SRC2=0
 HDF5=""
 PREFIX=""
 PRE="1."
@@ -47,6 +52,8 @@ key="$1"
 case $key in
     --enable-parallel)
     PARALLEL=1
+    H5CC=h5pcc
+    H5FC=h5pfc
     shift
     ;;
     --hdf5)
@@ -55,8 +62,14 @@ case $key in
     shift # past value
     ;;
     --src)
-    SRC="$2" # root install directory
+    SRC="$2"
     EXEC=`echo $SRC | sed -e 's/\.[^\.]*$//'`
+    shift # past argument
+    shift # past value
+    ;;
+    --src2) # A second program should be compiled and run after SRC has run
+    SRC2="$2"
+    EXEC2=`echo $SRC2 | sed -e 's/\.[^\.]*$//'`
     shift # past argument
     shift # past value
     ;;
@@ -94,6 +107,7 @@ if [[ $PARALLEL != 1 ]]; then
    export CC="gcc"
    export FC="gfortran"
    export F77="gfortran"
+   export CFLAGS="-std=c99"
 else
    echo -e "${grn}Enabled Parallel: TRUE${nc}"
    OPTS="--enable-parallel"
@@ -138,9 +152,9 @@ fi
 #VER_HDF5_0="6_0 6_1 6_2 6_5 6_6 6_7 6_8 6_9 6_10"
 VER_HDF5_1="$VER_HDF5_0 8_5-patch1 8_6 8_7 8_8 8_9 8_10-patch1"
 VER_HDF5_2="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21"
-VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 1_10 develop"
+VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 1_10 1_12 develop"
 VER_HDF5="$VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
-#VER_HDF5="10_3 10_4 10_5 develop"
+VER_HDF5="develop 1_12 1_10"
 #VER_HDF5="8_1"
 export LIBS="-ldl"
 export FLIBS="-ldl"
@@ -166,6 +180,7 @@ do
         fi
         
         if [[ $i =~ ^[0-9].* ]]; then
+            git stash
 	    git checkout tags/hdf5-1_$i
             BUILD_DIR=build_1_$i
             if [[ "$host" == *"summit"* ]]; then
@@ -176,6 +191,7 @@ do
               fi
             fi
 	else
+            git stash
 	    git checkout $i
 	    ./autogen.sh
             BUILD_DIR=build_$i
@@ -198,7 +214,7 @@ do
 	fi
 
 	HDF5=$PWD
-	../configure --disable-fortran --disable-hl --without-zlib --without-szip $HDF5_OPTS
+	../configure --disable-fortran --disable-hl --without-zlib --without-szlib $HDF5_OPTS
 	make -i -j 16
 	status=$?
 	if [[ $status != 0 ]]; then
@@ -224,19 +240,34 @@ do
     fi
 # Build EXAMPLE
     if [ $GENBUILD = 1 ]; then
-        echo "$HDF5/hdf5/bin/h5pcc -o ${EXEC}_${BUILD_DIR} $DEF $SRC"
-        $HDF5/hdf5/bin/h5pcc $CFLAGS -o ${EXEC}_${BUILD_DIR} $DEF $SRC
+        echo "$HDF5/hdf5/bin/${H5CC} -o ${EXEC}_${BUILD_DIR} $DEF $SRC"
+        $HDF5/hdf5/bin/${H5CC} $CFLAGS -o ${EXEC}_${BUILD_DIR} $DEF $SRC
 	status=$?
 	if [[ $status != 0 ]]; then
             echo "FAILED TO COMPILE $SRC"
             rm -f ${EXEC}_${BUILD_DIR}
 	    exit $status
 	fi
+        if [ $SRC2 != 0 ]; then
+          echo "$HDF5/hdf5/bin/${H5CC} -o ${EXEC2}_${BUILD_DIR} $DEF $SRC2"
+          $HDF5/hdf5/bin/${H5CC} $CFLAGS -o ${EXEC2}_${BUILD_DIR} $DEF $SRC2
+	  status=$?
+	  if [[ $status != 0 ]]; then
+              echo "FAILED TO COMPILE $SRC2"
+              rm -f ${EXEC2}_${BUILD_DIR}
+	      exit $status
+   	  fi
+        fi
+            
+
     fi
     if [ $TEST = 1 ]; then
         echo "$MPIEXEC ./${EXEC}_${BUILD_DIR} $ARGS"
-        $MPIEXEC ./${EXEC}_${BUILD_DIR} $ARGS 
- #       /usr/bin/time -v -f "%e real" -o "results" $MPIEXEC ./${EXEC}_${BUILD_DIR} $ARGS
+        /usr/bin/time -v -f "%e real" -o "results_${EXEC}_${BUILD_DIR}" $MPIEXEC ./${EXEC}_${BUILD_DIR} $ARGS
+        if [ $SRC2 != 0 ]; then
+            /usr/bin/time -v -f "%e real" -o "results_${EXEC2}_${BUILD_DIR}" $MPIEXEC ./${EXEC2}_${BUILD_DIR} $ARGS
+        fi
+ #      /usr/bin/time -v -f "%e real" -o "results" $MPIEXEC ./${EXEC}_${BUILD_DIR} $ARGS
         rm -fr *.h5
         #j0=$(printf "%02d" $j)
         #{ echo -n "$ONE$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/gen_time_$j0
@@ -251,14 +282,15 @@ do
 done
 
 # Combine the timing numbers to a single file
-if [ $TEST = 1 ]; then
-    echo "#nprocs=$NPROCS, nelem=$NELEM" > ${PREFIX}gen-timings
-    echo "#nprocs=$NPROCS, nelem=$NELEM" > ${PREFIX}gen-memory
-    cat gen_time_* >> ${PREFIX}gen-timings
-    cat gen_mem_* >> ${PREFIX}gen-memory
-    sed -i 's/_/./g' ${PREFIX}gen-timings
-    sed -i 's/_/./g' ${PREFIX}gen-memory
-    
-    rm -f gen_*
-fi
+#if [ $TEST = 1 ]; then
+
+#    echo "#nprocs=$NPROCS, nelem=$NELEM" > ${PREFIX}gen-timings
+#    echo "#nprocs=$NPROCS, nelem=$NELEM" > ${PREFIX}gen-memory
+#    cat gen_time_* >> ${PREFIX}gen-timings
+#    cat gen_mem_* >> ${PREFIX}gen-memory
+#    sed -i 's/_/./g' ${PREFIX}gen-timings
+#    sed -i 's/_/./g' ${PREFIX}gen-memory
+#    
+#    rm -f gen_*
+#fi
 
