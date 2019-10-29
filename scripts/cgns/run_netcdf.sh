@@ -178,7 +178,7 @@ do
 	else
             HDF5_OPTS="--enable-build-mode=production $OPTS"
             if [[ $i != 10* ]]; then
-                HDF5_OPTS="--with-default-api-version=v110 $OPTS"
+                HDF5_OPTS="--with-default-api-version=v110 $HDF5_OPTS"
             fi
 	fi
 
