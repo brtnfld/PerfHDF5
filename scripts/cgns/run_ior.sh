@@ -133,13 +133,13 @@ fi
 # List of all the HDF5 versions to run through
 VER_HDF5_1="8_12 8_13 8_14 8_15-patch1"
 VER_HDF5_2="8_16 8_17 8_18 8_19 8_20 8_21"
-VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 1_10 develop"
+VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 10 develop"
 
 VER_HDF5="$VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
 #VER_HDF5="10_3 10_4 10_5 merge_hyperslab_update_01 refactor_obj_create_params develop"
 #VER_HDF5="merge_hyperslab_update_01"
 #VER_HDF5="$VER_HDF5_3"
-VER_HDF5="10_1"
+VER_HDF5="10_5 10 develop"
 
 ##export LIBS="-ldl"
 ##export FLIBS="-ldl"
@@ -175,14 +175,15 @@ if [ $IORBUILD = 1 ]; then
     cd .. || exit
 
 fi
-
-printf "%b *******************************************\n" "$cyn"
-printf "       ________  ____ \n"
-printf "      /  _/ __ \/ __ \\n"
-printf "      / // / / / /_/ /\n"
-printf "    _/ // /_/ / _, _/ \n"
-printf "   /___/\____/_/ |_| \n"
-printf " ******************************************* %b\n" "$nc"
+printf "%b\n" "$cyn"
+printf "*******************************************\n"
+printf "            ________  ____  \n"
+printf "           /  _/ __ \/ __ \ \n"
+printf "           / // / / / /_/ / \n"
+printf "         _/ // /_/ / _, _/  \n"
+printf "        /___/\____/_/ |_|   \n"
+printf " *******************************************\n"
+printf "%b\n" "$nc"
 
 j=0
 for i in ${VER_HDF5}
@@ -199,6 +200,11 @@ do
 	    rm -fr build_1_"$i"
 	    mkdir build_1_"$i"
 	    cd build_1_"$i" || exit
+            if [[ $i =~ ^[0-9]+$ ]]; then # main version branches 1_8, 1_10, etc..
+                ONE=""
+              else
+                ONE="1."
+            fi
 	else
 	    git checkout "$i"
 	    ./autogen.sh
@@ -238,6 +244,7 @@ do
     else
         if [[ $i =~ ^[0-9].* ]]; then
 	    HDF5=$TOPDIR/hdf5/build_1_$i
+            ONE="1."
 	else
 	    HDF5=$TOPDIR/hdf5/build_$i
             ONE=""
@@ -286,10 +293,12 @@ do
 	    printf "%b IOR make #FAILED %b\n" "$red" "$nc"
 	    exit 1
 	fi
-	if ! make -i check; then
-	    printf "%b IOR make check (build) #FAILED %b\n" "$red" "$nc"
-	    exit 1
-	fi
+#
+#	if ! make -i check; then
+#	    printf "%b IOR make check (build) #FAILED %b\n" "$red" "$nc"
+#	    exit 1
+#	fi
+
 	if ! make install ; then
 	    printf "%b IOR make install #FAILED %b\n" "$red" "$nc"
 	    exit 1
@@ -304,12 +313,16 @@ do
 
         $MPIEXEC ./ior -b 32m -t 16m -i 5 -a HDF5 -O summaryFormat=default -O summaryFile=ior_hdf_${NPROCS}.${JID}.txt
         
+        write_max=$(tail -n3 ior_hdf_${NPROCS}.${JID}.txt | grep 'write' | awk  '{print $2}')
+        write_min=$(tail -n3 ior_hdf_${NPROCS}.${JID}.txt | grep 'write' | awk  '{print $3}')
+        write_mean=$(tail -n3 ior_hdf_${NPROCS}.${JID}.txt | grep 'write' | awk  '{print $4}')
+        read_max=$(tail -n3 ior_hdf_${NPROCS}.${JID}.txt | grep 'read' | awk  '{print $2}')
+        read_min=$(tail -n3 ior_hdf_${NPROCS}.${JID}.txt | grep 'read' | awk  '{print $3}')
+        read_mean=$(tail -n3 ior_hdf_${NPROCS}.${JID}.txt | grep 'read' | awk  '{print $4}')
+
+        j0=$(printf "%02d" $j)
+        echo "$ONE$i $write_mean, $write_min, $write_max, $read_mean, $read_min, $read_max" > "$TOPDIR"/ior_time_"$j0"
         
-#        /usr/bin/time -v -f "%e real" -o "results" make -i check
-#
-#        j0=$(printf "%02d" $j)
-#        { echo -n "$ONE$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > "$TOPDIR"/ior_time_"$j0"
-#        { echo -n "$ONE$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > "$TOPDIR":/ior_mem_"$j0"
     fi
 #    if [ $IORBUILD = 1 ]; then
 #        if [ $TEST = 1 ]; then
@@ -320,14 +333,12 @@ do
 done
 
 # Combine the timing numbers to a single file
-#if [ $TEST = 1 ]; then
-#    echo "#nprocs=$NPROCS" > ${PREFIX}ior-timings
-#    echo "#nprocs=$NPROCS" > ${PREFIX}ior-memory
-#    cat ior_time_* >> ${PREFIX}ior-timings
-#    cat ior_mem_* >> ${PREFIX}ior-memory
-#    sed -i 's/_/./g' ${PREFIX}ior-timings
-#    sed -i 's/_/./g' ${PREFIX}ior-memory
-#    
+if [ $TEST = 1 ]; then
+    echo "#nprocs=$NPROCS" > ${PREFIX}ior-timings
+    cat ior_time_* >> ${PREFIX}ior-timings
+    sed -i 's/_/./g' ${PREFIX}ior-timings
+    
 #    rm -f ior_*
-#fi
+fi
+
 
