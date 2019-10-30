@@ -131,15 +131,15 @@ fi
 #
 
 # List of all the HDF5 versions to run through
-VER_HDF5_1="8_12 8_13 8_14 8_15-patch1"
-VER_HDF5_2="8_16 8_17 8_18 8_19 8_20 8_21"
+#VER_HDF5_1="8_0 8_1 8_2 8_3-patch1 8_4-patch1 8_5-patch1 8_6 8_7 8_8 8_9 8_10-patch1 8_11 8_12 8_13 8_14 8_15-patch1"
+VER_HDF5_2="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21 8"
 VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 10 develop"
-
 VER_HDF5="$VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
+
 #VER_HDF5="10_3 10_4 10_5 merge_hyperslab_update_01 refactor_obj_create_params develop"
 #VER_HDF5="merge_hyperslab_update_01"
 #VER_HDF5="$VER_HDF5_3"
-VER_HDF5="10_5 10 develop"
+#VER_HDF5="10_5 10 develop"
 
 ##export LIBS="-ldl"
 ##export FLIBS="-ldl"
@@ -196,7 +196,11 @@ do
 	cd hdf5 || exit
 
         if [[ $i =~ ^[0-9].* ]]; then
+            git stash
 	    git checkout tags/hdf5-1_"$i"
+            wget -O bin/config.guess 'https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD'
+            wget -O bin/config.sub 'https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=HEAD'
+
 	    rm -fr build_1_"$i"
 	    mkdir build_1_"$i"
 	    cd build_1_"$i" || exit
@@ -206,14 +210,18 @@ do
                 ONE="1."
             fi
 	else
+            git stash
 	    git checkout "$i"
+            wget -O bin/config.guess 'https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD'
+            wget -O bin/config.sub 'https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=HEAD'
+
 	    ./autogen.sh
 	    rm -fr build_"$i"
 	    mkdir build_"$i"
 	    cd build_"$i" || exit
             ONE=""
 	fi
-	
+        	
 	if [[ $i == 8* ]]; then
 	    HDF5_OPTS="--enable-production $OPTS"	
 	else
