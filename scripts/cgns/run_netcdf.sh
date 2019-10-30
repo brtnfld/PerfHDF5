@@ -164,6 +164,11 @@ do
 	    rm -fr build_1_"$i"
 	    mkdir build_1_"$i"
 	    cd build_1_"$i" || exit
+            if [[ $i =~ ^[0-9]+$ ]]; then # main version branches 1_8, 1_10, etc..
+                ONE=""
+              else
+                ONE="1."
+            fi
 	else
 	    git checkout "$i"
 	    ./autogen.sh
