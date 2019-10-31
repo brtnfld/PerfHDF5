@@ -3,24 +3,25 @@
 #
 # This script will build a general program, and get performance numbers, for all the currently released versions of HDF5.
 #
-# Download and Build all the versions of hdf5
+# Example:
+# Download and Build all the versions of hdf5, parallel program. Don't build the program or run it
 #
-#./run_gen.sh --enable-parallel --notest --gen_nobuild
+#./run_prog.sh --enable-parallel --notest --prog_nobuild
 #
-# Build different versions of the general program
+# Build different versions of the general program. Don't build the hdf5 versions. Assumes hdf5 versions already compiled
 #
-#./run_gen.sh --enable-parallel --hdf5_nobuild --notest --src source
+#./run_prog.sh --enable-parallel --hdf5_nobuild --notest --src source
 #
-# Build both, no testing
+# Build both HDF5 and the program, don't run the program
 #
-# ./run_gen.sh --enable-parallel --notest --src source
+# ./run_prog.sh --enable-parallel --notest --src source
 #
-# run the tests
-# ./run_gen.sh --enable-parallel --hdf5_nobuild --gen_nobuild --ptest 4 <ARGS> --src source
+# run the tests only, don't compile the HDF5 library or the program. Assumes those are already built.
+# ./run_prog.sh --enable-parallel 4 --hdf5_nobuild --prog_nobuild  --src source --args <ARGS>
 #
-# ./run_gen.sh --enable-parallel --notest --gen_nobuild --src Sample_hdf5_measure_time.c
-# ./run_gen.sh --enable-parallel --hdf5_nobuild --notest --src Sample_hdf5_measure_time.c
-# ./run_gen.sh --enable-parallel --hdf5_nobuild --gen_nobuild --ptest 336 -t --src Sample_hdf5_measure_time.c
+# ./run_prog.sh --enable-parallel --notest --prog_nobuild --src Sample_hdf5_measure_time.c
+# ./run_prog.sh --enable-parallel --hdf5_nobuild --notest --src Sample_hdf5_measure_time.c
+# ./run_prog.sh --enable-parallel --hdf5_nobuild --prog_nobuild --src Sample_hdf5_measure_time.c
 #
 red=$'\e[1;31m'
 grn=$'\e[1;32m'
@@ -36,25 +37,27 @@ H5CC=h5cc
 H5FC=h5fc
 PARALLEL=0
 HDF5BUILD=1
-GENBUILD=1
+PROGBUILD=1
 TEST=1
 SRC2=0
 HDF5=""
 PREFIX=""
 PRE="1."
-NPROCS=8
+NPROCS=1
 TOPDIR=$PWD
-NELEM=65536
 POSITIONAL=()
+MPIEXEC=""
 while [[ $# -gt 0 ]]
 do
 key="$1"
 case $key in
     --enable-parallel)
+    NPROCS="$2" # Number of processes
     PARALLEL=1
     H5CC=h5pcc
     H5FC=h5pfc
-    shift
+    shift # past argument
+    shift # past value
     ;;
     --hdf5)
     HDF5="$2" # root install directory
@@ -77,25 +80,34 @@ case $key in
     HDF5BUILD=0
     shift
     ;;
-    --gen_nobuild)
-    GENBUILD=0
+    --prog_nobuild)
+    PROGBUILD=0
     shift
     ;;
     --notest)
     TEST=0
     shift
     ;;
-    --ptest)
-    NPROCS="$2" # Number of processes
-    ARGS="$3" # Size of parallel problem
+    --args)
+    ARGS="$2"
     shift # past argument
-    shift # past value
     shift # past value
     ;;
     --default)
     shift
     ;;
+    --help | -h)
+    printf "OPTIONS:\n"
+    printf " --enable-parallel int    enabled building parallel HDF5 and running parallel tests using n processes\n"
+    printf " --src string             program name \n"              
+    printf " --hdf5_nobuild           don't build hdf5 libraries\n"
+    printf " --prog_nobuild           don't build program\n"
+    printf " --notest                 don't run the program\n"
+    printf " --args \"options \"      program arguments, quoted\n"
+    ;;
     *)    # unknown option
+    printf "%bUnknown option %s \n%b" "$red" "$key" "$nc"
+    exit 1
     ;;
 esac
 done
@@ -145,26 +157,28 @@ else
 
 fi
 
-# Output all the results in the gen-timings file.
+# Output all the results in the prog-timings file.
 #
 
 # List of all the HDF5 versions to run through
 #VER_HDF5_1_6="6_0 6_1 6_2 6_5 6_6 6_7 6_8 6_9 6_10"
-VER_HDF5_1_8a="8_5-patch1 8_6 8_7 8_8 8_9 8_10-patch1"
+#VER_HDF5_1_8a="8_5-patch1 8_6"
+VER_HDF5_1_8a="8_7 8_8 8_9 8_10-patch1"
 VER_HDF5_1_8b="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21"
-VER_HDF5_1_10="10_0-patch1 10_1 10_2 10_3 10_4 10_5"
+VER_HDF5_1_10="10_0-patch1 10_1 10_3 10_4 10_5"
 VER_HDF5_1_12=""
 VER_HDF5_MISC="hdf5_1_12 hdf5_1_10 develop"
 
 VER_HDF5="$VER_HDF5_1_6 $VER_HDF5_1_8a $VER_HDF5_1_8b $VER_HDF5_1_10 $VER_HDF5_1_12 $VER_HDF5_MISC"
 #VER_HDF5="$VER_HDF5_MISC"
+#VER_HDF5="8_7"
 
 export LIBS="-ldl"
 export FLIBS="-ldl"
 
 if [  $HDF5BUILD = 1 ]; then
     rm -fr hdf5
-    git clone https://brtnfld@bitbucket.hdfgroup.org/scm/hdffv/hdf5.git
+    git clone https://bitbucket.hdfgroup.org/scm/hdffv/hdf5.git
 fi
 
 j=0
@@ -190,8 +204,11 @@ do
               if [[ $i == 8*  || $i == 6* ]]; then
                 wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.guess
                 wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.sub
-                autoreconf -ivf 
+                autoreconf -ivf
+              else
+                ./autogen.sh
               fi
+              
             fi
 	else
             git stash
@@ -214,10 +231,17 @@ do
             fi
 	else
 	    HDF5_OPTS="--enable-build-mode=production $OPTS"
+            if ../configure -h | grep -q "enable-tests"; then
+               HDF5_OPTS="--disable-tests --disable-tools $HDF5_OPTS" 
+            fi
 	fi
 
 	HDF5=$PWD
-	../configure --disable-fortran --disable-hl --without-zlib --without-szlib $HDF5_OPTS
+        CONFIG_CMD="../configure --disable-fortran --disable-hl --without-zlib --without-szlib $HDF5_OPTS"
+
+        printf "\n%b$CONFIG_CMD %b \n\n" "$mag" "$nc" 
+        $CONFIG_CMD
+
 	make -i -j 16
 	status=$?
 	if [[ $status != 0 ]]; then
@@ -230,33 +254,32 @@ do
 	    echo "HDF5 make install #FAILED"
 	    exit $status
         fi
-	cd ../../
+	cd ../../ || exit
     else
         if [[ $i =~ ^[0-9].* ]]; then
             BUILD_DIR=build_1_$i
-	    HDF5=$TOPDIR/hdf5/$BUILD_DIR
 	else
             BUILD_DIR=build_$i
-	    HDF5=$TOPDIR/hdf5/$BUILD_DIR
             ONE=""
 	fi
+        HDF5="$TOPDIR"/hdf5/$BUILD_DIR
     fi
 # Build EXAMPLE
-    if [ $GENBUILD = 1 ]; then
+    if [ $PROGBUILD = 1 ]; then
         echo "$HDF5/hdf5/bin/${H5CC} -o ${EXEC}_${BUILD_DIR} $DEF $SRC"
         $HDF5/hdf5/bin/${H5CC} $CFLAGS -o ${EXEC}_${BUILD_DIR} $DEF $SRC
 	status=$?
 	if [[ $status != 0 ]]; then
-            echo "FAILED TO COMPILE $SRC"
+            printf "%bFAILED TO COMPILE ${SRC}%b/n" "$red" "$nc"
             rm -f ${EXEC}_${BUILD_DIR}
 	    exit $status
 	fi
         if [ $SRC2 != 0 ]; then
-          echo "$HDF5/hdf5/bin/${H5CC} -o ${EXEC2}_${BUILD_DIR} $DEF $SRC2"
+          echo "$HDF5/hdf5/bin/${H5CC} -o ${EXEC2}_${BUILD_DIR} $DEF ${SRC2}"
           $HDF5/hdf5/bin/${H5CC} $CFLAGS -o ${EXEC2}_${BUILD_DIR} $DEF $SRC2
 	  status=$?
 	  if [[ $status != 0 ]]; then
-              echo "FAILED TO COMPILE $SRC2"
+              printf "%bFAILED TO COMPILE ${SRC2}%b/n" "$red" "$nc"
               rm -f ${EXEC2}_${BUILD_DIR}
 	      exit $status
    	  fi
@@ -265,35 +288,35 @@ do
 
     fi
     if [ $TEST = 1 ]; then
-        echo "$MPIEXEC ./${EXEC}_${BUILD_DIR} $ARGS"
+        printf "%b$MPIEXEC ./${EXEC}_${BUILD_DIR} $ARGS %b\n" "$mag" "$nc"
         /usr/bin/time -v -f "%e real" -o "results_${EXEC}_${BUILD_DIR}" $MPIEXEC ./${EXEC}_${BUILD_DIR} $ARGS
         if [ $SRC2 != 0 ]; then
             /usr/bin/time -v -f "%e real" -o "results_${EXEC2}_${BUILD_DIR}" $MPIEXEC ./${EXEC2}_${BUILD_DIR} $ARGS
         fi
- #      /usr/bin/time -v -f "%e real" -o "results" $MPIEXEC ./${EXEC}_${BUILD_DIR} $ARGS
         rm -fr *.h5
-        #j0=$(printf "%02d" $j)
-        #{ echo -n "$ONE$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/gen_time_$j0
-        #{ echo -n "$ONE$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/gen_mem_$j0
+        
+        j0=$(printf "%02d" $j)
+        { echo -n "$ONE$i " & grep "Elapsed" "results_${EXEC}_${BUILD_DIR}" | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/prog_time_$j0
+        { echo -n "$ONE$i " & grep "Maximum resident" "results_${EXEC}_${BUILD_DIR}" | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/prog_mem_$j0
     fi
-    if [ $GENBUILD = 1 ]; then
+    if [ $PROGBUILD = 1 ]; then
         if [ $TEST = 1 ]; then
-            rm -fr $TOPDIR/GEN.$i
+            rm -fr $TOPDIR/PROG.$i
         fi
     fi
     cd $TOPDIR
 done
 
 # Combine the timing numbers to a single file
-#if [ $TEST = 1 ]; then
+if [ $TEST = 1 ]; then
 
-#    echo "#nprocs=$NPROCS, nelem=$NELEM" > ${PREFIX}gen-timings
-#    echo "#nprocs=$NPROCS, nelem=$NELEM" > ${PREFIX}gen-memory
-#    cat gen_time_* >> ${PREFIX}gen-timings
-#    cat gen_mem_* >> ${PREFIX}gen-memory
-#    sed -i 's/_/./g' ${PREFIX}gen-timings
-#    sed -i 's/_/./g' ${PREFIX}gen-memory
-#    
-#    rm -f gen_*
-#fi
+    echo "#nprocs=$NPROCS" > ${PREFIX}prog-timings
+    echo "#nprocs=$NPROCS" > ${PREFIX}prog-memory
+    cat prog_time_* >> ${PREFIX}prog-timings
+    cat prog_mem_* >> ${PREFIX}prog-memory
+    sed -i 's/_/./g' ${PREFIX}prog-timings
+    sed -i 's/_/./g' ${PREFIX}prog-memory
+    
+    rm -f prog_*
+fi
 

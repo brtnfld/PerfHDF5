@@ -122,8 +122,9 @@ VER_HDF5_2="8_16 8_17 8_18 8_19 8_20 8_21"
 VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 1_10 develop"
 
 VER_HDF5="$VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
-VER_HDF5="10_3 10_4 10_5 merge_hyperslab_update_01 refactor_obj_create_params develop"
-#VER_HDF5="merge_hyperslab_update_01"
+#VER_HDF5="10_3 10_4 10_5 merge_hyperslab_update_01 refactor_obj_create_params develop"
+VER_HDF5="10_5 develop"
+VER_HDF5="merge_hyperslab_update_01 refactor_obj_create_params develop 10_3 10_4 10_5"
 #VER_HDF5="$VER_HDF5_3"
 #VER_HDF5="10_1"
 
@@ -217,14 +218,14 @@ do
 
     if [ $NETCDFBUILD = 1 ]; then
 
-        if [ -d "$HDF5/hdf5/include" ]; then
-            export CPPFLAGS="-I$HDF5/hdf5/include"
-            export LDFLAGS="-L$HDF5/hdf5/lib"
-        else
+        if [ ! -d "$HDF5/hdf5/include" ]; then
 	    echo "Incorrect NETCDF's HDF5 path $HDF5/hdf5"
 	    exit $status
         fi
         
+        export CPPFLAGS="-I$HDF5/hdf5/include"
+        export LDFLAGS="-L$HDF5/hdf5/lib"
+
       #  H5_VERS_MINOR=`grep '#define H5_VERS_MINOR' $HDF5/hdf5/include/H5public.h | awk '{print $3}'`
       #  if (( $H5_VERS_MINOR > 10 )); then
       #      export CFLAGS="-DH5_USE_110_API"
