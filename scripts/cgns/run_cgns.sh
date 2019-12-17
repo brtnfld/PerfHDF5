@@ -192,7 +192,11 @@ do
         git checkout .
 
         if [[ $i =~ ^[0-9].* ]]; then
-	    git checkout tags/hdf5-1_$i
+            if [[ $i == *"_"* ]]; then
+                git checkout tags/hdf5-1_$i
+            else
+                git checkout hdf5-1_$i
+            fi
 	    rm -fr build_1_$i
 	    mkdir build_1_$i
 	    cd build_1_$i
@@ -295,7 +299,7 @@ do
 	    make -j 16
 	    status=$?
 	    if [[ $status != 0 ]]; then
-		echo "CGNS make check #FAILED"
+		echo "CGNS make #FAILED"
 		exit $status
 	    fi
 	else
