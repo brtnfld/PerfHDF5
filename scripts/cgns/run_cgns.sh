@@ -89,6 +89,7 @@ esac
 done
 
 host=$HOSTNAME
+HOSTNAME=`hostname -d`
 OPTS=""
 
 printf "\n$cyn    SUMMARY \n  ------------\n"
@@ -111,12 +112,12 @@ else
     printf "FALSE \n $nc"
 fi
 if [[ $PARALLEL != 1 ]]; then
-   echo -e "${red}Enabled Parallel: FALSE${nc}"
+   printf "${red}Enabled Parallel: FALSE${nc} \n"
    export CC="gcc"
    export FC="gfortran"
    export F77="gfortran"
 else
-   echo -e "${grn}Enabled Parallel: TRUE${nc}"
+   printf "${grn}Enabled Parallel: TRUE${nc} \n"
    OPTS="--enable-parallel"
 
 # ANL
@@ -159,7 +160,7 @@ VER_HDF5_1="8_7 8_8 8_9 8_10-patch1"
 VER_HDF5_2="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21 8"
 VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 10_6 10 12_0_alpha1 12 develop"
 
-VER_HDF5="$VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
+VER_HDF5="$VER_HDF5_0 $VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
 #VER_HDF5="$VER_HDF5_3"
 #VER_HDF5="develop hyperslab_updates"
 #VER_HDF5="10_3 10_4 10_5 merge_hyperslab_update_01 refactor_obj_create_params develop"
@@ -207,10 +208,10 @@ do
 	    HDF5_OPTS="--enable-production $OPTS"
 
             if [[ $HOSTNAME == summit* ]]; then
-                if  [[ $i =~ 8_[1-6].* ]]; then
+                if  [[ $i =~ 8_[1-10].* ]]; then
                     git clone git://git.savannah.gnu.org/config.git
-                    cp config/config.guess .
-                    cp config/config.sub .
+                    cp config/config.guess ../bin/
+                    cp config/config.sub ../bin/
                 fi
             fi
 
