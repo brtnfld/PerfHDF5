@@ -112,12 +112,12 @@ else
     printf "FALSE \n $nc"
 fi
 if [[ $PARALLEL != 1 ]]; then
-   printf "${red}Enabled Parallel: FALSE${nc} \n"
+   printf "$red Enabled Parallel: FALSE $nc \n"
    export CC="gcc"
    export FC="gfortran"
    export F77="gfortran"
 else
-   printf "${grn}Enabled Parallel: TRUE${nc} \n"
+   printf "$grn Enabled Parallel: TRUE $nc \n"
    OPTS="--enable-parallel"
 
 # ANL
@@ -162,7 +162,7 @@ VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 10_6 10 12_0_alpha1 12 develop"
 
 VER_HDF5="$VER_HDF5_0 $VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
 #VER_HDF5="$VER_HDF5_3"
-#VER_HDF5="develop hyperslab_updates"
+#VER_HDF5="develop"
 #VER_HDF5="10_3 10_4 10_5 merge_hyperslab_update_01 refactor_obj_create_params develop"
 
 export LIBS="-ldl"
@@ -189,6 +189,7 @@ do
 # Build HDF5
     if [  $HDF5BUILD = 1 ]; then
 	cd hdf5
+        git checkout .
 
         if [[ $i =~ ^[0-9].* ]]; then
 	    git checkout tags/hdf5-1_$i
@@ -243,7 +244,7 @@ do
 	    echo "HDF5 make install #FAILED"
 	    exit $status
         fi
-	cd ../../
+        cd ../../
     else
         if [[ $i =~ ^[0-9].* ]]; then
 	    HDF5=$TOPDIR/hdf5/build_1_$i
