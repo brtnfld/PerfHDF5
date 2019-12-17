@@ -98,10 +98,11 @@ case $key in
     ;;
     --help | -h)
     printf "OPTIONS:\n"
-    printf " --enable-parallel int    enabled building parallel HDF5 and running parallel tests using n processes\n"
+    printf " --enable-parallel int    enabled building parallel HDF5, and executing the program using n processes\n"
     printf " --src string             program name \n"              
+    printf " --src2 string            optional second program name to be run after src \n" 
     printf " --hdf5_nobuild           don't build hdf5 libraries\n"
-    printf " --prog_nobuild           don't build program\n"
+    printf " --prog_nobuild           don't build the program\n"
     printf " --notest                 don't run the program\n"
     printf " --args \"options \"      program arguments, quoted\n"
     ;;
@@ -162,16 +163,15 @@ fi
 
 # List of all the HDF5 versions to run through
 #VER_HDF5_1_6="6_0 6_1 6_2 6_5 6_6 6_7 6_8 6_9 6_10"
-#VER_HDF5_1_8a="8_5-patch1 8_6"
-VER_HDF5_1_8a="8_7 8_8 8_9 8_10-patch1"
-VER_HDF5_1_8b="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21"
-VER_HDF5_1_10="10_0-patch1 10_1 10_3 10_4 10_5"
+VER_HDF5_1_8a="8_0 8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6"
+VER_HDF5_1_8b="8_7 8_8 8_9 8_10-patch1"
+VER_HDF5_1_8c="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21"
+VER_HDF5_1_10="10_0-patch1 10_1 10_2 10_3 10_4 10_5"
 VER_HDF5_1_12=""
 VER_HDF5_MISC="hdf5_1_12 hdf5_1_10 develop"
 
-VER_HDF5="$VER_HDF5_1_6 $VER_HDF5_1_8a $VER_HDF5_1_8b $VER_HDF5_1_10 $VER_HDF5_1_12 $VER_HDF5_MISC"
-#VER_HDF5="$VER_HDF5_MISC"
-#VER_HDF5="8_7"
+VER_HDF5="$VER_HDF5_1_6 $VER_HDF5_1_8a $VER_HDF5_1_8b $VER_HDF5_1_8c $VER_HDF5_1_10 $VER_HDF5_1_12 $VER_HDF5_MISC"
+#VER_HDF5="10_2"
 
 export LIBS="-ldl"
 export FLIBS="-ldl"
@@ -264,6 +264,7 @@ do
 	fi
         HDF5="$TOPDIR"/hdf5/$BUILD_DIR
     fi
+
 # Build EXAMPLE
     if [ $PROGBUILD = 1 ]; then
         echo "$HDF5/hdf5/bin/${H5CC} -o ${EXEC}_${BUILD_DIR} $DEF $SRC"
