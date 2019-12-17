@@ -15,7 +15,11 @@
 #
 # ./run_cgns.sh --enable-parallel --notest
 #
-# run the tests
+# Run just the serial tests
+# 
+# ./run_cgns.sh --hdf5_nobuild --cgns_nobuild
+
+# Run the parallel tests (--ptest numproc numelem)
 # ./run_cgns.sh --enable-parallel --hdf5_nobuild --cgns_nobuild --ptest 4 2014
 
 red=$'\e[1;31m'
@@ -136,9 +140,10 @@ else
    fi
 #ORNL
    if [[ $HOSTNAME == summit* ]]; then
+       export MPIEXEC="jsrun -n $NPROCS"
        export CC="mpicc"
-       export FC="mpif90"
-       export F77="mpif90"
+       export FC="mpifort"
+       export F77="mpifort"
    fi
 
 #DEFAULT
