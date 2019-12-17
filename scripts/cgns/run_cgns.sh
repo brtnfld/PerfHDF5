@@ -82,12 +82,34 @@ case $key in
     shift
     ;;
     *)    # unknown option
+    printf "\n$red ERROR: unknown option $key $nc\n"
+    exit 1
     ;;
 esac
 done
 
 host=$HOSTNAME
 OPTS=""
+
+printf "\n$cyn    SUMMARY \n  ------------\n"
+printf "BUILD HDF5: "
+if [[ $HDF5BUILD != 0 ]]; then
+    printf "TRUE \n"
+else
+    printf "FALSE \n"
+fi
+printf "BUILD CGNS: "
+if [[ $CGNSBUILD != 0 ]]; then
+    printf "TRUE \n"
+else
+    printf "FALSE \n"
+fi
+printf "NO TESTING: "
+if [[ $TEST != 0 ]]; then
+    printf "TRUE \n $nc"
+else
+    printf "FALSE \n $nc"
+fi
 if [[ $PARALLEL != 1 ]]; then
    echo -e "${red}Enabled Parallel: FALSE${nc}"
    export CC="gcc"
@@ -111,6 +133,13 @@ else
        export FC="ftn"
        export F77="ftn"
    fi
+#ORNL
+   if [[ $HOSTNAME == summit* ]]; then
+       export CC="mpicc"
+       export FC="mpif90"
+       export F77="mpif90"
+   fi
+
 #DEFAULT
    if [[ -z "$MPIEXEC" ]]; then
        export MPIEXEC="mpiexec -n $NPROCS"
@@ -176,6 +205,15 @@ do
 	
 	if [[ $i == 8* ]]; then
 	    HDF5_OPTS="--enable-production $OPTS"
+
+            if [[ $HOSTNAME == summit* ]]; then
+                if  [[ $i =~ 8_[1-6].* ]]; then
+                    git clone git://git.savannah.gnu.org/config.git
+                    cp config/config.guess .
+                    cp config/config.sub .
+                fi
+            fi
+
 	else
 	    HDF5_OPTS="--enable-build-mode=production $OPTS"
 	fi
@@ -186,7 +224,12 @@ do
         fi
 
 	HDF5=$PWD
-	../configure --disable-fortran --disable-hl --without-zlib --without-szip  $HDF5_OPTS
+        BUILD_CMD="../configure --disable-fortran --disable-hl --without-zlib --without-szip  $HDF5_OPTS"
+
+        printf "$mag $BUILD_CMD $nc\n"
+
+	$BUILD_CMD
+
 	make -i -j 16
 	status=$?
 	if [[ $status != 0 ]]; then
