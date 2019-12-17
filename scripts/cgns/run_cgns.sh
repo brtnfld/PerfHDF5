@@ -225,7 +225,7 @@ do
         fi
 
 	HDF5=$PWD
-        BUILD_CMD="../configure --disable-fortran --disable-hl --without-zlib --without-szip  $HDF5_OPTS"
+        BUILD_CMD="../configure --disable-fortran --disable-hl --without-zlib --without-szlib  $HDF5_OPTS"
 
         printf "$mag $BUILD_CMD $nc\n"
 
