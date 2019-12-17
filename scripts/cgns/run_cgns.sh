@@ -27,11 +27,11 @@ cyn=$'\e[1;36m'
 nc='\033[0m' # No Color
 
 printf "$cyn ***************************\n"
-printf "   _____________   _______\n"
-printf "  / ____/ ____/ | / / ___/\n"
-printf " / /   / / __/  |/ /\__ \ \n"
-printf "/ /___/ /_/ / /|  /___/ / \n"
-printf "\____/\____/_/ |_//____/  \n"
+printf "    _____________   _______\n"
+printf "   / ____/ ____/ | / / ___/\n"
+printf "  / /   / / __/  |/ /\__ \ \n"
+printf " / /___/ /_/ / /|  /___/ / \n"
+printf " \____/\____/_/ |_//____/  \n"
 printf " *******************************$nc\n"
 
 PARALLEL=0
@@ -195,7 +195,7 @@ do
             if [[ $i == *"_"* ]]; then
                 git checkout tags/hdf5-1_$i
             else
-                git checkout hdf5-1_$i
+                git checkout hdf5_1_$i
             fi
 	    rm -fr build_1_$i
 	    mkdir build_1_$i
