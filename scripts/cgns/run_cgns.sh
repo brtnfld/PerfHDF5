@@ -41,6 +41,7 @@ printf " *******************************$nc\n"
 PARALLEL=0
 HDF5BUILD=1
 CGNSBUILD=1
+PTEST=0
 TEST=1
 HDF5=""
 PREFIX=""
@@ -78,6 +79,7 @@ case $key in
     --ptest)
     NPROCS="$2" # Number of processes
     NELEM="$3" # Size of parallel problem
+    PTEST=1
     shift # past argument
     shift # past value
     shift # past value
@@ -96,7 +98,7 @@ host=$HOSTNAME
 HOSTNAME=`hostname -d`
 OPTS=""
 
-printf "\n$cyn    SUMMARY \n  ------------\n"
+printf "\n$mag    SUMMARY \n  ------------\n"
 printf "BUILD HDF5: "
 if [[ $HDF5BUILD != 0 ]]; then
     printf "TRUE \n"
@@ -116,12 +118,12 @@ else
     printf "FALSE \n $nc"
 fi
 if [[ $PARALLEL != 1 ]]; then
-   printf "$red Enabled Parallel: FALSE $nc \n"
+   printf "$red Enabled Parallel: FALSE $nc \n\n"
    export CC="gcc"
    export FC="gfortran"
    export F77="gfortran"
 else
-   printf "$grn Enabled Parallel: TRUE $nc \n"
+   printf "$grn Enabled Parallel: TRUE $nc \n\n"
    OPTS="--enable-parallel"
 
 # ANL
@@ -201,6 +203,7 @@ do
                 git checkout tags/hdf5-1_$i
             else
                 git checkout hdf5_1_$i
+                ./autogen.sh
             fi
 	    rm -fr build_1_$i
 	    mkdir build_1_$i
@@ -298,16 +301,18 @@ do
 	    echo "CGNS make #FAILED"
 	    exit $status
 	fi
-	if [[ $PARALLEL != 1 ]]; then
-            cd tests
+
       # compile the tests
-	    make -j 16
-	    status=$?
-	    if [[ $status != 0 ]]; then
-		echo "CGNS make #FAILED"
-		exit $status
-	    fi
-	else
+        cd tests
+        make -j 16
+        status=$?
+        if [[ $status != 0 ]]; then
+            echo "CGNS make #FAILED"
+            exit $status
+        fi
+        cd ..
+
+	if [[ $PARALLEL == 1 ]]; then
 	    cd ptests
 	    make -j 16
 	    status=$?
@@ -315,6 +320,7 @@ do
 		echo "PCGNS make #FAILED"
 		exit $status
 	    fi
+            cd ..
         fi
     fi
     if [ $TEST = 1 ]; then
