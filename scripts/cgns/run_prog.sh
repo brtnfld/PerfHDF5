@@ -275,10 +275,10 @@ do
 
         EXT="${SRC##*.}"
         if [[ $EXT == "cpp" || $EXT == "cxx" || $EXT == ".cc" ]]; then
-            LIBS="-lstdc++"
+            LIBS="-lstdc++ -I$HDF5/hdf5/include"
         fi
 
-        echo "$HDF5/hdf5/bin/${H5CC} -o ${EXEC}_${BUILD_DIR} $DEF $SRC"
+        echo "$HDF5/hdf5/bin/${H5CC} -o ${EXEC}_${BUILD_DIR} $DEF $SRC $LIBS"
         $HDF5/hdf5/bin/${H5CC} $CFLAGS -o ${EXEC}_${BUILD_DIR} $DEF $SRC $LIBS
 	status=$?
 	if [[ $status != 0 ]]; then
