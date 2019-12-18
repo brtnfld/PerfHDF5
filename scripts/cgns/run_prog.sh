@@ -227,7 +227,7 @@ do
                 CXXFLAGS="-DHDF5_1_6"
             fi
             if [[ $HOSTNAME == summit* ]]; then
-                if  [[ $i =~ 8_[1-9].* || $i == 8 ]]; then
+                if  [[ $i =~ 8_[0-9].* || $i == 8 ]]; then
                     git clone git://git.savannah.gnu.org/config.git
                     cp config/config.guess ../bin/
                     cp config/config.sub ../bin/
