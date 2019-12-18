@@ -47,6 +47,7 @@ NPROCS=1
 TOPDIR=$PWD
 POSITIONAL=()
 MPIEXEC=""
+LIBS=""
 while [[ $# -gt 0 ]]
 do
 key="$1"
@@ -165,10 +166,10 @@ fi
 #VER_HDF5_1_6="6_0 6_1 6_2 6_5 6_6 6_7 6_8 6_9 6_10"
 VER_HDF5_1_8a="8_0 8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6"
 VER_HDF5_1_8b="8_7 8_8 8_9 8_10-patch1"
-VER_HDF5_1_8c="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21"
-VER_HDF5_1_10="10_0-patch1 10_1 10_2 10_3 10_4 10_5"
-VER_HDF5_1_12=""
-VER_HDF5_MISC="hdf5_1_12 hdf5_1_10 develop"
+VER_HDF5_1_8c="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21 8"
+VER_HDF5_1_10="10_0-patch1 10_1 10_2 10_3 10_4 10_5 10_6 10"
+VER_HDF5_1_12="12_0_alpha1 12"
+VER_HDF5_MISC="develop"
 
 VER_HDF5="$VER_HDF5_1_6 $VER_HDF5_1_8a $VER_HDF5_1_8b $VER_HDF5_1_8c $VER_HDF5_1_10 $VER_HDF5_1_12 $VER_HDF5_MISC"
 #VER_HDF5="10_2"
@@ -177,7 +178,9 @@ export LIBS="-ldl"
 export FLIBS="-ldl"
 
 if [  $HDF5BUILD = 1 ]; then
-    rm -fr hdf5
+    if [ -d "hdf5" ]; then
+        rm -fr hdf5
+    fi
     git clone https://bitbucket.hdfgroup.org/scm/hdffv/hdf5.git
 fi
 
@@ -191,27 +194,21 @@ do
     ONE="1."
     if [  $HDF5BUILD = 1 ]; then
 	cd hdf5
-        if [[ $i == 8*  || $i == 6* ]]; then
-          wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.guess
-          wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.sub
-        fi
-        
+        git checkout .
+   #     if [[ $i == 8*  || $i == 6* || $i == hdf5_1_8 ]]; then
+   #       wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.guess
+   #       wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.sub
+   #     fi
+
         if [[ $i =~ ^[0-9].* ]]; then
-            git stash
-	    git checkout tags/hdf5-1_$i
-            BUILD_DIR=build_1_$i
-            if [[ "$host" == *"summit"* ]]; then
-              if [[ $i == 8*  || $i == 6* ]]; then
-                wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.guess
-                wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.sub
-                autoreconf -ivf
-              else
+            if [[ $i == *"_"* ]]; then
+                git checkout tags/hdf5-1_$i
+            else
+                git checkout hdf5_1_$i
                 ./autogen.sh
-              fi
-              
             fi
+            BUILD_DIR=build_1_$i
 	else
-            git stash
 	    git checkout $i
 	    ./autogen.sh
             BUILD_DIR=build_$i
@@ -229,6 +226,14 @@ do
                 HDF5_OPTS="$HDF5_OPTS --prefix $PWD/hdf5"
                 CXXFLAGS="-DHDF5_1_6"
             fi
+            if [[ $HOSTNAME == summit* ]]; then
+                if  [[ $i =~ 8_[1-9].* || $i == 8 ]]; then
+                    git clone git://git.savannah.gnu.org/config.git
+                    cp config/config.guess ../bin/
+                    cp config/config.sub ../bin/
+                    rm -fr config
+                fi
+            fi
 	else
 	    HDF5_OPTS="--enable-build-mode=production $OPTS"
             if ../configure -h | grep -q "enable-tests"; then
@@ -238,8 +243,8 @@ do
 
 	HDF5=$PWD
         CONFIG_CMD="../configure --disable-fortran --disable-hl --without-zlib --without-szlib $HDF5_OPTS"
+        printf "\n%b$CONFIG_CMD %b \n\n" "$mag" "$nc"
 
-        printf "\n%b$CONFIG_CMD %b \n\n" "$mag" "$nc" 
         $CONFIG_CMD
 
 	make -i -j 16
@@ -267,8 +272,14 @@ do
 
 # Build EXAMPLE
     if [ $PROGBUILD = 1 ]; then
+
+        EXT="${SRC##*.}"
+        if [[ $EXT == "cpp" || $EXT == "cxx" || $EXT == ".cc" ]]; then
+            LIBS="-lstdc++"
+        fi
+
         echo "$HDF5/hdf5/bin/${H5CC} -o ${EXEC}_${BUILD_DIR} $DEF $SRC"
-        $HDF5/hdf5/bin/${H5CC} $CFLAGS -o ${EXEC}_${BUILD_DIR} $DEF $SRC
+        $HDF5/hdf5/bin/${H5CC} $CFLAGS -o ${EXEC}_${BUILD_DIR} $DEF $SRC $LIBS
 	status=$?
 	if [[ $status != 0 ]]; then
             printf "%bFAILED TO COMPILE ${SRC}%b/n" "$red" "$nc"
@@ -277,7 +288,7 @@ do
 	fi
         if [ $SRC2 != 0 ]; then
           echo "$HDF5/hdf5/bin/${H5CC} -o ${EXEC2}_${BUILD_DIR} $DEF ${SRC2}"
-          $HDF5/hdf5/bin/${H5CC} $CFLAGS -o ${EXEC2}_${BUILD_DIR} $DEF $SRC2
+          $HDF5/hdf5/bin/${H5CC} $CFLAGS -o ${EXEC2}_${BUILD_DIR} $DEF $SRC2 $LIBS
 	  status=$?
 	  if [[ $status != 0 ]]; then
               printf "%bFAILED TO COMPILE ${SRC2}%b/n" "$red" "$nc"
