@@ -189,7 +189,6 @@ fi
 
 j=0
 for i in ${VER_HDF5}
-
 do
     status=0
     j=$[j + 1]
@@ -335,8 +334,8 @@ do
             make -j 16
       # Time make check (does not include the complilation time)
            # /usr/bin/time -v -f "%e real" -o "results" make test
-            echo "TIMING ... $MPIEXEC benchmark_hdf5"
-            /usr/bin/time -v -f "%e real" -o "results" $MPIEXEC benchmark_hdf5 -nelem $NELEM
+            echo "TIMING ... $MPIEXEC benchmark_hdf5 -nelem $NELEM"
+            /usr/bin/time -v -f "%e real" -o "results"  $MPIEXEC benchmark_hdf5 -nelem $NELEM
         fi
         j0=$(printf "%02d" $j)
         { echo -n "$ONE$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/cgns_time_$j0
