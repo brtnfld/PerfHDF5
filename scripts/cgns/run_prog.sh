@@ -53,6 +53,10 @@ do
 key="$1"
 case $key in
     --enable-parallel)
+    if ! [[ "$2" =~ ^[0-9]+$ ]];then
+        printf "%bUnknown integer value for %s: val= %d \n%b" "$red" "$key" "$2" "$nc"
+        exit 1
+    fi
     NPROCS="$2" # Number of processes
     PARALLEL=1
     H5CC=h5pcc
@@ -113,6 +117,7 @@ case $key in
     ;;
 esac
 done
+
 HOSTNAME=`hostname -d`
 host=$HOSTNAME
 OPTS=""
@@ -175,8 +180,6 @@ VER_HDF5_1_12="12_0-alpha1 12"
 VER_HDF5_MISC="develop"
 
 VER_HDF5="$VER_HDF5_1_6 $VER_HDF5_1_8a $VER_HDF5_1_8b $VER_HDF5_1_8c $VER_HDF5_1_10 $VER_HDF5_1_12 $VER_HDF5_MISC"
-#VER_HDF5="10_6"
-#VER_HDF5="12_0-alpha1"
 
 export LIBS="-ldl"
 export FLIBS="-ldl"
@@ -200,14 +203,10 @@ do
 	cd hdf5
         git checkout .
 
-   #     if [[ $i == 8*  || $i == 6* || $i == hdf5_1_8 ]]; then
-   #       wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.guess
-   #       wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.sub
-   #     fi
 
         if [[ $i =~ ^[0-9].* ]]; then
 
-            if git show-ref --tags | grep -q "hdf5-1_$i"; then
+            if git show-ref --tags | grep "tags/hdf5-1_$i$"; then
                 # found tag
                 git checkout tags/hdf5-1_$i
                 status=$?
@@ -220,10 +219,10 @@ do
                 git checkout hdf5_1_$i
                 status=$?
                 if [[ $status != 0 ]]; then
-                    printf "\n%bgit checkout hdf5_1_$i #FAILED%b \n\n" "$mag" "$nc"
+                    printf "\n%bgit checkout hdf5_1_$i #FAILED%b \n\n" "$red " "$nc"
                     exit $status
                 fi
-                if -f autogen.sh;then
+                if test -f "autogen.sh";then
                     ./autogen.sh
                 fi
             fi
@@ -248,6 +247,8 @@ do
             fi
             if [[ $HOSTNAME == summit* ]]; then
                 if  [[ $i =~ 8_[0-9].* || $i == 8 ]]; then
+                    # wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.guess
+                    # wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.sub
                     git clone git://git.savannah.gnu.org/config.git
                     cp config/config.guess ../bin/
                     cp config/config.sub ../bin/

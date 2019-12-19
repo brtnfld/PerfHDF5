@@ -30,12 +30,12 @@ mag=$'\e[1;35m'
 cyn=$'\e[1;36m'
 nc='\033[0m' # No Color
 
-printf "$cyn ***************************\n"
-printf "    _____________   _______\n"
-printf "   / ____/ ____/ | / / ___/\n"
-printf "  / /   / / __/  |/ /\__ \ \n"
-printf " / /___/ /_/ / /|  /___/ / \n"
-printf " \____/\____/_/ |_//____/  \n"
+printf "$cyn *******************************\n"
+printf "      _____________   _______\n"
+printf "     / ____/ ____/ | / / ___/\n"
+printf "    / /   / / __/  |/ /\__ \ \n"
+printf "   / /___/ /_/ / /|  /___/ / \n"
+printf "   \____/\____/_/ |_//____/  \n"
 printf " *******************************$nc\n"
 
 PARALLEL=0
@@ -86,6 +86,14 @@ case $key in
     ;;
     --default)
     shift
+    ;;
+    --help | -h)
+    printf "OPTIONS:\n"
+    printf " --enable-parallel        enabled building parallel HDF5\n"
+    printf " --hdf5_nobuild           don't build hdf5 libraries\n"
+    printf " --cgns_nobuild           don't build the program\n"
+    printf " --notest                 don't run the program\n"
+    printf " --ptest NumProc Nelem    number of processes, and size of problem\n"
     ;;
     *)    # unknown option
     printf "\n$red ERROR: unknown option $key $nc\n"
@@ -199,7 +207,7 @@ do
 
         if [[ $i =~ ^[0-9].* ]]; then
 
-            if git show-ref --tags | grep -q "hdf5-1_$i"; then
+            if git show-ref --tags | grep "tags/hdf5-1_$i$"; then
                 # found tag
                 git checkout tags/hdf5-1_$i
                 status=$?
@@ -212,10 +220,10 @@ do
                 git checkout hdf5_1_$i
                 status=$?
                 if [[ $status != 0 ]]; then
-                    printf "\n%bgit checkout hdf5_1_$i #FAILED%b \n\n" "$mag" "$nc"
+                    printf "\n%bgit checkout hdf5_1_$i #FAILED%b \n\n" "$red" "$nc"
                     exit $status
                 fi
-                if -f autogen.sh;then
+                if test -f "autogen.sh";then
                     ./autogen.sh
                 fi
             fi
@@ -235,6 +243,8 @@ do
 
             if [[ $HOSTNAME == summit* ]]; then
                 if  [[ $i =~ 8_[1-9].* || $i == 8 ]]; then
+                    # wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.guess
+                    # wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.sub
                     git clone git://git.savannah.gnu.org/config.git
                     cp config/config.guess ../bin/
                     cp config/config.sub ../bin/
