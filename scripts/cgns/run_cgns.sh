@@ -198,23 +198,37 @@ do
         git checkout .
 
         if [[ $i =~ ^[0-9].* ]]; then
-            if [[ $i == *"_"* ]]; then
+
+            if git show-ref --tags | grep -q "hdf5-1_$i"; then
+                # found tag
                 git checkout tags/hdf5-1_$i
+                status=$?
+                if [[ $status != 0 ]]; then
+                    printf "\n%bgit checkout tags/hdf5-1_$i #FAILED%b \n\n" "$red" "$nc"
+                    exit $status
+                fi
             else
+                # tag not found, must be a branch
                 git checkout hdf5_1_$i
-                ./autogen.sh
+                status=$?
+                if [[ $status != 0 ]]; then
+                    printf "\n%bgit checkout hdf5_1_$i #FAILED%b \n\n" "$mag" "$nc"
+                    exit $status
+                fi
+                if -f autogen.sh;then
+                    ./autogen.sh
+                fi
             fi
-	    rm -fr build_1_$i
-	    mkdir build_1_$i
-	    cd build_1_$i
+            BUILD_DIR=build_1_$i
 	else
 	    git checkout $i
 	    ./autogen.sh
-	    rm -fr build_$i
-	    mkdir build_$i
-	    cd build_$i
             ONE=""
 	fi
+
+        rm -fr $BUILD_DIR
+        mkdir $BUILD_DIR
+        cd $BUILD_DIR
 	
 	if [[ $i == 8* ]]; then
 	    HDF5_OPTS="--enable-production $OPTS"
@@ -352,13 +366,34 @@ done
 
 # Combine the timing numbers to a single file
 if [ $TEST = 1 ]; then
-    echo "#nprocs=$NPROCS, nelem=$NELEM" > ${PREFIX}cgns-timings
-    echo "#nprocs=$NPROCS, nelem=$NELEM" > ${PREFIX}cgns-memory
-    cat cgns_time_* >> ${PREFIX}cgns-timings
-    cat cgns_mem_* >> ${PREFIX}cgns-memory
-    sed -i 's/_/./g' ${PREFIX}cgns-timings
-    sed -i 's/_/./g' ${PREFIX}cgns-memory
-    
+
+    i=1
+    FILE_T=${PREFIX}cgns-timings
+    until [ ! -f "${FILE_T}" ]
+      do
+        ((i=i+1))
+        FILE_T=${PREFIX}cgns-timings.${i}
+      done
+
+    i=1
+    FILE_M=${PREFIX}cgns-memory
+    until [ ! -f "${FILE_M}" ]
+      do
+        ((i=i+1))
+        FILE_M=${PREFIX}cgns-memory.${i}
+      done
+
+    echo "#nprocs=$NPROCS, nelem=$NELEM" > ${FILE_T}
+    echo "#nprocs=$NPROCS, nelem=$NELEM" > ${FILE_M}
+    cat cgns_time_* >> ${FILE_T}
+    cat cgns_mem_* >> ${FILE_M}
+    sed -i 's/_/./g' ${FILE_T}
+    sed -i 's/_/./g' ${FILE_M}
+
+# Add extra spaces for gnuplot formating
+    sed -i 's/\(1.8\|1.10\|1.12\|1.14\) [0-9].*/&\n\n/g' ${FILE_T}
+    sed -i 's/\(1.8\|1.10\|1.12\|1.14\) [0-9].*/&\n\n/g' ${FILE_M}
+
     rm -f cgns_*
 fi
 

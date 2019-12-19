@@ -163,16 +163,20 @@ fi
 #
 
 # List of all the HDF5 versions to run through
+
+# Note "hdf5-" represents a tagged version, otherwise it is a branch
+
 #VER_HDF5_1_6="6_0 6_1 6_2 6_5 6_6 6_7 6_8 6_9 6_10"
 VER_HDF5_1_8a="8_0 8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6"
 VER_HDF5_1_8b="8_7 8_8 8_9 8_10-patch1"
 VER_HDF5_1_8c="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21 8"
 VER_HDF5_1_10="10_0-patch1 10_1 10_2 10_3 10_4 10_5 10_6 10"
-VER_HDF5_1_12="12_0_alpha1 12"
+VER_HDF5_1_12="12_0-alpha1 12"
 VER_HDF5_MISC="develop"
 
 VER_HDF5="$VER_HDF5_1_6 $VER_HDF5_1_8a $VER_HDF5_1_8b $VER_HDF5_1_8c $VER_HDF5_1_10 $VER_HDF5_1_12 $VER_HDF5_MISC"
-#VER_HDF5="10_2"
+#VER_HDF5="10_6"
+#VER_HDF5="12_0-alpha1"
 
 export LIBS="-ldl"
 export FLIBS="-ldl"
@@ -195,17 +199,33 @@ do
     if [  $HDF5BUILD = 1 ]; then
 	cd hdf5
         git checkout .
+
    #     if [[ $i == 8*  || $i == 6* || $i == hdf5_1_8 ]]; then
    #       wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.guess
    #       wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.sub
    #     fi
 
         if [[ $i =~ ^[0-9].* ]]; then
-            if [[ $i == *"_"* ]]; then
+
+            if git show-ref --tags | grep -q "hdf5-1_$i"; then
+                # found tag
                 git checkout tags/hdf5-1_$i
+                status=$?
+                if [[ $status != 0 ]]; then
+                    printf "\n%bgit checkout tags/hdf5-1_$i #FAILED%b \n\n" "$red" "$nc"
+                    exit $status
+                fi
             else
+                # tag not found, must be a branch
                 git checkout hdf5_1_$i
-                ./autogen.sh
+                status=$?
+                if [[ $status != 0 ]]; then
+                    printf "\n%bgit checkout hdf5_1_$i #FAILED%b \n\n" "$mag" "$nc"
+                    exit $status
+                fi
+                if -f autogen.sh;then
+                    ./autogen.sh
+                fi
             fi
             BUILD_DIR=build_1_$i
 	else
@@ -322,12 +342,32 @@ done
 # Combine the timing numbers to a single file
 if [ $TEST = 1 ]; then
 
-    echo "#nprocs=$NPROCS" > ${PREFIX}prog-timings
-    echo "#nprocs=$NPROCS" > ${PREFIX}prog-memory
-    cat prog_time_* >> ${PREFIX}prog-timings
-    cat prog_mem_* >> ${PREFIX}prog-memory
-    sed -i 's/_/./g' ${PREFIX}prog-timings
-    sed -i 's/_/./g' ${PREFIX}prog-memory
+    i=1
+    FILE_T=${PREFIX}prog-timings
+    until [ ! -f "${FILE_T}" ]
+      do
+        ((i=i+1))
+        FILE_T=${PREFIX}prog-timings.${i}
+      done
+
+    i=1
+    FILE_M=${PREFIX}prog-memory
+    until [ ! -f "${FILE_M}" ]
+      do
+        ((i=i+1))
+        FILE_M=${PREFIX}prog-memory.${i}
+      done
+
+    echo "#nprocs=$NPROCS" > ${FILE_T}
+    echo "#nprocs=$NPROCS" > ${FILE_M}
+    cat prog_time_* >> ${FILE_T}
+    cat prog_mem_* >> ${FILE_M}
+    sed -i 's/_/./g' ${FILE_T}
+    sed -i 's/_/./g' ${FILE_M}
+
+# Add extra spaces for gnuplot formating
+    sed -i 's/\(1.8\|1.10\|1.12\|1.14\) [0-9].*/&\n\n/g' ${FILE_T}
+    sed -i 's/\(1.8\|1.10\|1.12\|1.14\) [0-9].*/&\n\n/g' ${FILE_M}
     
     rm -f prog_*
 fi
