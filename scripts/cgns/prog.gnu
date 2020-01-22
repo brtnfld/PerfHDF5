@@ -195,7 +195,7 @@ set psdir
 set fit brief errorvariables nocovariancevariables errorscaling prescale nowrap v5
 GNUTERM = "aqua"
 set key top left
-set bmargin at screen 0.2
+set bmargin at screen 0.3
 ## Last datafile plotted: "h5diff-timings"
 plot newhistogram "1.8", \
 'prog-timings.1' i 0 u 2:xtic(1) noti linecolor rgb "#377eb8",\
