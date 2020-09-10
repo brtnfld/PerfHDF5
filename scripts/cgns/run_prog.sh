@@ -109,7 +109,8 @@ case $key in
     printf " --hdf5_nobuild           don't build hdf5 libraries\n"
     printf " --prog_nobuild           don't build the program\n"
     printf " --notest                 don't run the program\n"
-    printf " --args \"options \"      program arguments, quoted\n"
+    printf " --args \"options\"         program arguments, quoted\n\n"
+    exit 0
     ;;
     *)    # unknown option
     printf "%bUnknown option %s \n%b" "$red" "$key" "$nc"
@@ -174,9 +175,10 @@ fi
 #VER_HDF5_1_6="6_0 6_1 6_2 6_5 6_6 6_7 6_8 6_9 6_10"
 VER_HDF5_1_8a="8_0 8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6"
 VER_HDF5_1_8b="8_7 8_8 8_9 8_10-patch1"
-VER_HDF5_1_8c="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21 8"
-VER_HDF5_1_10="10_0-patch1 10_1 10_2 10_3 10_4 10_5 10_6 10"
-VER_HDF5_1_12="12_0-alpha1 12"
+VER_HDF5_1_8c="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19"
+VER_HDF5_1_8c="8_20 8_21 8"
+VER_HDF5_1_10="10_0-patch1 10_1 10_2 10_3 10_4 10_5 10_6 10_7 10"
+VER_HDF5_1_12="12_0 12"
 VER_HDF5_MISC="develop"
 
 VER_HDF5="$VER_HDF5_1_6 $VER_HDF5_1_8a $VER_HDF5_1_8b $VER_HDF5_1_8c $VER_HDF5_1_10 $VER_HDF5_1_12 $VER_HDF5_MISC"
