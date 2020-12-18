@@ -1,6 +1,5 @@
 #!/bin/bash
 #
-#
 # This script will build CGNS, and get performance numbers, for all the currently released versions of HDF5.
 #
 # Download and Build all the versions of hdf5
@@ -18,7 +17,7 @@
 # Run just the serial tests
 # 
 # ./run_cgns.sh --hdf5_nobuild --cgns_nobuild
-
+#
 # Run the parallel tests (--ptest numproc numelem)
 # ./run_cgns.sh --enable-parallel --hdf5_nobuild --cgns_nobuild --ptest 4 2014
 
@@ -121,9 +120,9 @@ else
 fi
 printf "NO TESTING: "
 if [[ $TEST != 0 ]]; then
-    printf "TRUE \n $nc"
-else
     printf "FALSE \n $nc"
+else
+    printf "TRUE \n $nc"
 fi
 if [[ $PARALLEL != 1 ]]; then
    printf "$red Enabled Parallel: FALSE $nc \n\n"
@@ -178,7 +177,6 @@ VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 10_6 10_7 10 12_0 12 develop"
 VER_HDF5=" $VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
 #VER_HDF5="$VER_HDF5_3"
 #VER_HDF5="develop"
-#VER_HDF5="10_3 10_4 10_5 merge_hyperslab_update_01 refactor_obj_create_params develop"
 
 export LIBS="-ldl"
 export FLIBS="-ldl"
@@ -194,7 +192,6 @@ fi
 #if [ $CGNSBUILD = 1 ]; then
 #    git clone https://github.com/CGNS/CGNS.git
 #fi
-
 j=0
 for i in ${VER_HDF5}
 do
@@ -232,6 +229,7 @@ do
 	    git checkout $i
 	    ./autogen.sh
             ONE=""
+            BUILD_DIR=build_$i
 	fi
 
         rm -fr $BUILD_DIR
@@ -346,24 +344,46 @@ do
             cd ..
         fi
     fi
+
     if [ $TEST = 1 ]; then
+        j0=$(printf "%02d" $j)
         if [[ $PARALLEL != 1 ]]; then
             cd $TOPDIR/CGNS.$i/src/tests
             make -j 16
       # Time make check (does not include the complilation time)
-            /usr/bin/time -v -f "%e real" -o "results" make test
+            NTIMES=4
+            VAL=""
+            rm -f $TOPDIR/cgns_time_$j0
+            for ((n=1;n<=${NTIMES};n++));do
+              /usr/bin/time -v -f "%e real" -o "results" make test
+              ETIME=`grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'`
+              VAL+=${ETIME}","
+            done
+            VAL2=`echo $VAL | sed 's/\,/\n/g'`
+            VALS=`echo "$VAL2" | awk '{if(min==""){min=max=$1}; if($1>max) {max=$1}; if($1<min) {min=$1}; total+=$1; count+=1} END {print total/count, min, max}'`
+            echo "$ONE$i $VALS" > $TOPDIR/cgns_time_$j0
         else
             PREFIX="p"
             cd $TOPDIR/CGNS.${i}/src/ptests
             make -j 16
       # Time make check (does not include the complilation time)
            # /usr/bin/time -v -f "%e real" -o "results" make test
-            echo "TIMING ... $MPIEXEC benchmark_hdf5 -nelem $NELEM"
-            /usr/bin/time -v -f "%e real" -o "results"  $MPIEXEC benchmark_hdf5 -nelem $NELEM
+            NTIMES=4
+            VAL=""
+            rm -f $TOPDIR/cgns_time_$j0
+            for ((n=1;n<=${NTIMES};n++));do
+              echo "TIMING ... $MPIEXEC benchmark_hdf5 -nelem $NELEM"
+              /usr/bin/time -v -f "%e real" -o "results"  $MPIEXEC benchmark_hdf5 -nelem $NELEM
+              ETIME=`grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'`
+	      VAL+=${ETIME}"," 
+            done
+            VAL2=`echo $VAL | sed 's/\,/\n/g'`
+            VALS=`echo "$VAL2" | awk '{if(min==""){min=max=$1}; if($1>max) {max=$1}; if($1<min) {min=$1}; total+=$1; count+=1} END {print total/count, min, max}'`
+            echo "$ONE$i $VALS" > $TOPDIR/cgns_time_$j0
+    
         fi
-        j0=$(printf "%02d" $j)
-        { echo -n "$ONE$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/cgns_time_$j0
-        { echo -n "$ONE$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/cgns_mem_$j0
+#        { echo -n "$ONE$i " & grep "Elapsed" result* | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/cgns_time_$j0
+#        { echo -n "$ONE$i " & grep "Maximum resident" result* | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/cgns_mem_$j0
         rm -fr benchmark_*.cgns 
     fi
     if [ $CGNSBUILD = 1 ]; then
@@ -385,24 +405,24 @@ if [ $TEST = 1 ]; then
         FILE_T=${PREFIX}cgns-timings.${i}
       done
 
-    i=1
-    FILE_M=${PREFIX}cgns-memory
-    until [ ! -f "${FILE_M}" ]
-      do
-        ((i=i+1))
-        FILE_M=${PREFIX}cgns-memory.${i}
-      done
+    #i=1
+    #FILE_M=${PREFIX}cgns-memory
+    #until [ ! -f "${FILE_M}" ]
+    #  do
+    #    ((i=i+1))
+    #    FILE_M=${PREFIX}cgns-memory.${i}
+    #  done
 
-    echo "#nprocs=$NPROCS, nelem=$NELEM" > ${FILE_T}
-    echo "#nprocs=$NPROCS, nelem=$NELEM" > ${FILE_M}
+    echo "#nprocs=$NPROCS, nelem=$NELEM, ntim=$NTIMES" > ${FILE_T}
+    #echo "#nprocs=$NPROCS, nelem=$NELEM, ntim=$NTIMES" > ${FILE_M}
     cat cgns_time_* >> ${FILE_T}
-    cat cgns_mem_* >> ${FILE_M}
+    #cat cgns_mem_* >> ${FILE_M}
     sed -i 's/_/./g' ${FILE_T}
-    sed -i 's/_/./g' ${FILE_M}
+    #sed -i 's/_/./g' ${FILE_M}
 
 # Add extra spaces for gnuplot formating
     sed -i 's/\(1.8\|1.10\|1.12\|1.14\) [0-9].*/&\n\n/g' ${FILE_T}
-    sed -i 's/\(1.8\|1.10\|1.12\|1.14\) [0-9].*/&\n\n/g' ${FILE_M}
+    #sed -i 's/\(1.8\|1.10\|1.12\|1.14\) [0-9].*/&\n\n/g' ${FILE_M}
 
     rm -f cgns_*
 fi
