@@ -182,7 +182,7 @@ export LIBS="-ldl"
 export FLIBS="-ldl"
 #export LIBS="-Wl,--no-as-needed -ldl"
 
-if [  $HDF5BUILD = 1 ]; then
+if [ $HDF5BUILD = 1 ]; then
     if [ -d "hdf5" ]; then
         rm -fr hdf5
     fi
@@ -198,7 +198,7 @@ do
     status=0
     j=$[j + 1]
 # Build HDF5
-    if [  $HDF5BUILD = 1 ]; then
+    if [ $HDF5BUILD = 1 ]; then
 	cd hdf5
         git checkout .
 
