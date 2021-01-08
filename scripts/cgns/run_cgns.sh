@@ -92,7 +92,8 @@ case $key in
     printf " --hdf5_nobuild           don't build hdf5 libraries\n"
     printf " --cgns_nobuild           don't build the program\n"
     printf " --notest                 don't run the program\n"
-    printf " --ptest NumProc Nelem    number of processes, and size of problem\n"
+    printf " --ptest NumProc Nelem    number of processes, and size of problem\n\n"
+    exit 0
     ;;
     *)    # unknown option
     printf "\n$red ERROR: unknown option $key $nc\n"
