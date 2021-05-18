@@ -161,6 +161,7 @@ else
        export CC="mpicc"
        export FC="mpif90"
        export F77="mpif90"
+       export CFLAGS="-std=c99"
    fi
 
 fi
