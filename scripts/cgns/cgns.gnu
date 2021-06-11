@@ -12,6 +12,7 @@
 #    	immediate help:   type "help"  (plot window: hit 'h')
 # set terminal wxt 0 enhanced
 # set output
+set terminal wxt 0 size 2427,1500
 unset clip points
 set clip one
 unset clip two
@@ -125,10 +126,10 @@ set mcbtics default
 set mrtics default
 set nomttics
 set xtics border in scale 1,0.5 mirror rotate by -45  autojustify
-set xtics  norangelimit  font ", 24"
+set xtics  norangelimit  font ", 28"
 set xtics   ()
 set ytics border in scale 1,0.5 mirror norotate  autojustify
-set ytics  norangelimit autofreq  font ", 24"
+set ytics  norangelimit autofreq  font ", 28"
 set ztics border in scale 1,0.5 nomirror norotate  autojustify
 set ztics  norangelimit autofreq 
 unset x2tics
@@ -138,8 +139,8 @@ set cbtics  norangelimit autofreq
 set rtics axis in scale 1,0.5 nomirror norotate  autojustify
 set rtics  norangelimit autofreq 
 unset ttics
-set title "CGNS serial make, Jelly^{ntimes=10}" 
-set title  font ", 28" norotate
+set title "CGNS serial make, Jelly^{ntimes=4}" 
+set title  font ", 36" norotate
 set timestamp bottom 
 set timestamp "" 
 set timestamp  font "" norotate
@@ -147,13 +148,13 @@ set trange [ * : * ] noreverse nowriteback
 set urange [ * : * ] noreverse nowriteback
 set vrange [ * : * ] noreverse nowriteback
 set xlabel "HDF5 version" 
-set xlabel  font "Times Bold,28" textcolor lt -1 norotate
+set xlabel  font "Times Bold,36" textcolor lt -1 norotate
 set x2label "" 
 set x2label  font "" textcolor lt -1 norotate
 set xrange [ * : * ] noreverse nowriteback
 set x2range [ * : * ] noreverse nowriteback
 set ylabel "Time CGNS \"make check\", Serial (seconds)" 
-set ylabel  font "Times Bold,28" textcolor lt -1 rotate
+set ylabel  font "Times Bold,36" textcolor lt -1 rotate
 set y2label "" 
 set y2label  font "" textcolor lt -1 rotate
 set yrange [ 0.00000 : * ] noreverse nowriteback
@@ -189,14 +190,16 @@ set fontpath
 set psdir
 set fit brief errorvariables nocovariancevariables errorscaling prescale nowrap v5
 GNUTERM = "qt"
-## Last datafile plotted: "cgns-timings.1"
+
+date = strftime("%m/%d/%Y", time(0))
+
 plot newhistogram "1.8", \
-'cgns-timings.4' i 0 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#00608c",\
+'cgns-timings.5' i 0 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#00608c",\
 newhistogram "1.10",\
 '' i 1 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#9764b2",\
 newhistogram "1.12", \
 '' i 2 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#ff5f7e",\
-newhistogram "", \
+newhistogram date, \
 '' i 3 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#ffa600"
 
 #    EOF
