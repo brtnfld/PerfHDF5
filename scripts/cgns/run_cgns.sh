@@ -172,7 +172,7 @@ fi
 # List of all the HDF5 versions to run through
 VER_HDF5_0="8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6"
 VER_HDF5_1="8_7 8_8 8_9 8_10-patch1"
-VER_HDF5_2="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21 8"
+VER_HDF5_2="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21 8_22 8"
 VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 10_6 10_7 10 12_0 12 develop"
 
 VER_HDF5=" $VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
