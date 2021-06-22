@@ -12,6 +12,7 @@
 #    	immediate help:   type "help"  (plot window: hit 'h')
 # set terminal wxt 0 enhanced
 # set output
+set terminal wxt 0 size 2427,1500
 unset clip points
 set clip one
 unset clip two
@@ -138,7 +139,7 @@ set cbtics  norangelimit autofreq
 set rtics axis in scale 1,0.5 nomirror norotate  autojustify
 set rtics  norangelimit autofreq 
 unset ttics
-set title "CGNS benchmark\\_hdf5, Summit (ORNL)^{nprocs=1764,ntimes=4}" 
+set title "CGNS benchmark\\_hdf5, Summit (ORNL)^{nprocs=3528,ntimes=4}" 
 set title  font ", 28" norotate
 set timestamp bottom 
 set timestamp "" 
@@ -190,13 +191,16 @@ set psdir
 set fit brief errorvariables nocovariancevariables errorscaling prescale nowrap v5
 GNUTERM = "qt"
 ## Last datafile plotted: "cgns-timings.1"
+
+date = strftime("%m/%d/%Y", time(0))
+
 plot newhistogram "1.8", \
-'cgns-timings.1' i 0 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#00608c",\
+'pcgns-timings' i 0 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#00608c",\
 newhistogram "1.10",\
-'cgns-timings.1' i 1 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#9764b2",\
+'' i 1 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#9764b2",\
 newhistogram "1.12", \
-'cgns-timings.1' i 2 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#ff5f7e",\
-newhistogram "", \
-'cgns-timings.1' i 3 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#ffa600"
+'' i 2 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#ff5f7e",\
+newhistogram date, \
+'' i 3 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#ffa600"
 
 #    EOF
