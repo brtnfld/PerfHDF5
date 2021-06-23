@@ -208,13 +208,13 @@ set lmargin 12
 #'prog-timing' i 3 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#ffa600",\
 #'prog-timing.1' i 3 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#888888"
 
-plot newhistogram "1.8", \
+plot newhistogram "1.8" tc rgb "#00608c", \
 'prog-timing' i 0 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#00608c",\
-newhistogram "1.10",\
+newhistogram "1.10" tc rgb "#9764b2",\
 '' i 1 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#9764b2",\
-newhistogram "1.12", \
+newhistogram "1.12" tc rgb "#ff5f7e", \
 '' i 2 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#ff5f7e",\
-newhistogram date, \
+newhistogram date tc rgb "#ffa600",\
 '' i 3 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#ffa600"
 
 
