@@ -122,15 +122,17 @@ done
 HOSTNAME=`hostname -d`
 host=$HOSTNAME
 OPTS=""
+#OPTS="--enable-using-memchecker"
 if [[ $PARALLEL != 1 ]]; then
    echo -e "${red}Enabled Parallel: FALSE${nc}"
    export CC="gcc"
    export FC="gfortran"
    export F77="gfortran"
+   export CXX="g++"
    export CFLAGS="-std=c99"
 else
    echo -e "${grn}Enabled Parallel: TRUE${nc}"
-   OPTS="--enable-parallel"
+   OPTS="--enable-parallel $OPTS"
 
 # ANL
    if [[ "$host" == *"cetus"* || "$host" == *"mira"* ]]; then
@@ -173,17 +175,16 @@ fi
 
 # Note "hdf5-" represents a tagged version, otherwise it is a branch
 
-#VER_HDF5_1_6="6_0 6_1 6_2 6_5 6_6 6_7 6_8 6_9 6_10"
+VER_HDF5_1_6="6_0 6_1 6_2 6_5 6_6 6_7 6_8 6_9 6_10"
 VER_HDF5_1_8a="8_0 8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6"
+VER_HDF5_1_8a="8_0 8_1 8_2 8_4-patch1 8_5-patch1 8_6"
 VER_HDF5_1_8b="8_7 8_8 8_9 8_10-patch1"
 VER_HDF5_1_8c="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19"
-VER_HDF5_1_8c="8_20 8_21 8"
+VER_HDF5_1_8d="8_20 8_21 8_22 8"
 VER_HDF5_1_10="10_0-patch1 10_1 10_2 10_3 10_4 10_5 10_6 10_7 10"
 VER_HDF5_1_12="12_0 12"
 VER_HDF5_MISC="develop"
-
-VER_HDF5="$VER_HDF5_1_6 $VER_HDF5_1_8a $VER_HDF5_1_8b $VER_HDF5_1_8c $VER_HDF5_1_10 $VER_HDF5_1_12 $VER_HDF5_MISC"
-
+VER_HDF5="$VER_HDF5_1_8a $VER_HDF5_1_8b $VER_HDF5_1_8c $VER_HDF5_1_8d $VER_HDF5_1_10 $VER_HDF5_1_12 $VER_HDF5_MISC"
 export LIBS="-ldl"
 export FLIBS="-ldl"
 
@@ -191,7 +192,7 @@ if [  $HDF5BUILD = 1 ]; then
     if [ -d "hdf5" ]; then
         rm -fr hdf5
     fi
-    git clone https://bitbucket.hdfgroup.org/scm/hdffv/hdf5.git
+    git clone https://github.com/HDFGroup/hdf5.git 
 fi
 
 j=0
@@ -205,7 +206,6 @@ do
     if [  $HDF5BUILD = 1 ]; then
 	cd hdf5
         git checkout .
-
 
         if [[ $i =~ ^[0-9].* ]]; then
 
@@ -324,20 +324,31 @@ do
 
     fi
     if [ $TEST = 1 ]; then
+        j0=$(printf "%02d" $j)
+        NTIMES=10
+        VAL=""
+        rm -f $TOPDIR/${EXEC}_$j0
         printf "%b$MPIEXEC ./${EXEC}_${BUILD_DIR} $ARGS %b\n" "$mag" "$nc"
-        /usr/bin/time -v -f "%e real" -o "results_${EXEC}_${BUILD_DIR}" $MPIEXEC ./${EXEC}_${BUILD_DIR} $ARGS
+        for ((n=1;n<=${NTIMES};n++));do
+            /usr/bin/time -v -f "%e real" -o "results"  $MPIEXEC ./${EXEC}_${BUILD_DIR} $ARGS
+            #/usr/bin/time -v -f "%e real" -o "results_${EXEC}_${BUILD_DIR}" $MPIEXEC ./${EXEC}_${BUILD_DIR} $ARGS
+            ETIME=`grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'`
+            VAL+=${ETIME}","
+        done 
+        VAL2=`echo $VAL | sed 's/\,/\n/g'`
+        VALS=`echo "$VAL2" | awk '{if(min==""){min=max=$1}; if($1>max) {max=$1}; if($1<min) {min=$1}; total+=$1; count+=1} END {print total/count, min, max}'`
+        echo "$ONE$i $VALS" > $TOPDIR/${EXEC}__$j0
         if [ $SRC2 != 0 ]; then
             /usr/bin/time -v -f "%e real" -o "results_${EXEC2}_${BUILD_DIR}" $MPIEXEC ./${EXEC2}_${BUILD_DIR} $ARGS
         fi
         rm -fr *.h5
         
-        j0=$(printf "%02d" $j)
-        { echo -n "$ONE$i " & grep "Elapsed" "results_${EXEC}_${BUILD_DIR}" | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/prog_time_$j0
-        { echo -n "$ONE$i " & grep "Maximum resident" "results_${EXEC}_${BUILD_DIR}" | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/prog_mem_$j0
+        #{ echo -n "$ONE$i " & grep "Elapsed" "results_${EXEC}_${BUILD_DIR}" | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/prog_time_$j0
+        #{ echo -n "$ONE$i " & grep "Maximum resident" "results_${EXEC}_${BUILD_DIR}" | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/prog_mem_$j0
     fi
     if [ $PROGBUILD = 1 ]; then
         if [ $TEST = 1 ]; then
-            rm -fr $TOPDIR/PROG.$i
+            rm -fr $TOPDIR/${EXEC}.$i
         fi
     fi
     cd $TOPDIR
@@ -347,32 +358,24 @@ done
 if [ $TEST = 1 ]; then
 
     i=1
-    FILE_T=${PREFIX}prog-timings
+    FILE_T=${PREFIX}PROG_${EXEC}.${i}
     until [ ! -f "${FILE_T}" ]
       do
         ((i=i+1))
-        FILE_T=${PREFIX}prog-timings.${i}
+        FILE_T=${PREFIX}PROG_${EXEC}.${i}
       done
 
-    i=1
-    FILE_M=${PREFIX}prog-memory
-    until [ ! -f "${FILE_M}" ]
-      do
-        ((i=i+1))
-        FILE_M=${PREFIX}prog-memory.${i}
-      done
-
-    echo "#nprocs=$NPROCS" > ${FILE_T}
-    echo "#nprocs=$NPROCS" > ${FILE_M}
-    cat prog_time_* >> ${FILE_T}
-    cat prog_mem_* >> ${FILE_M}
+    echo "#nprocs=$NPROCS, ntim=$NTIMES" > ${FILE_T}
+    #echo "#nprocs=$NPROCS, nelem=$NELEM, ntim=$NTIMES" > ${FILE_M}
+    cat ${EXEC}__* >> ${FILE_T}
+    #cat cgns_mem_* >> ${FILE_M}
     sed -i 's/_/./g' ${FILE_T}
-    sed -i 's/_/./g' ${FILE_M}
+    #sed -i 's/_/./g' ${FILE_M}
 
 # Add extra spaces for gnuplot formating
-    sed -i 's/\(1.8\|1.10\|1.12\|1.14\) [0-9].*/&\n\n/g' ${FILE_T}
-    sed -i 's/\(1.8\|1.10\|1.12\|1.14\) [0-9].*/&\n\n/g' ${FILE_M}
-    
-    rm -f prog_*
+    sed -i 's/\(1.6\|1.8\|1.10\|1.12\|1.14\) [0-9].*/&\n\n/g' ${FILE_T}
+    #sed -i 's/\(1.8\|1.10\|1.12\|1.14\) [0-9].*/&\n\n/g' ${FILE_M}
+
+    rm -f ${EXEC}_*
 fi
 
