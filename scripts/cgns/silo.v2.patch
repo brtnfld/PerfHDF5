@@ -1,0 +1,114 @@
+diff -ur ../silo-4.10.2/src/hdf5_drv/H5FDsilo.c ./src/hdf5_drv/H5FDsilo.c
+--- ../silo-4.10.2/src/hdf5_drv/H5FDsilo.c	2014-05-07 21:55:44.000000000 -0500
++++ ./src/hdf5_drv/H5FDsilo.c	2021-07-02 11:16:49.823972951 -0500
+@@ -255,13 +255,13 @@
+         snprintf(msg, sizeof(msg), Msg "(errno=%d, \"%s\")",	\
+             Errno, strerror(Errno));					\
+     ret_value = Ret;							\
+-    H5Epush_ret(Func, Cls, Maj, Min, msg, Ret)				\
++    H5Epush_ret(Func, Cls, Maj, Min, msg, Ret);				\
+ }
+ #else
+ #define H5E_PUSH_HELPER(Func,Cls,Maj,Min,Msg,Ret,Errno)			\
+ {									\
+     ret_value = Ret;							\
+-    H5Epush_ret(Func, Cls, Maj, Min, Msg, Ret)				\
++    H5Epush_ret(Func, Cls, Maj, Min, Msg, Ret);				\
+ }
+ #endif
+ 
+@@ -1308,8 +1308,8 @@
+     assert(sizeof(hsize_t)<=8);
+     memcpy(p, &file->block_size, sizeof(hsize_t));
+     if (H5Tconvert(H5T_NATIVE_HSIZE, H5T_STD_U64LE, 1, buf+8, NULL, H5P_DEFAULT)<0)
+-        H5Epush_ret(func, H5E_ERR_CLS, H5E_DATATYPE, H5E_CANTCONVERT, "can't convert superblock info", -1)
+-
++      H5Epush_ret(func, H5E_ERR_CLS, H5E_DATATYPE, H5E_CANTCONVERT, "can't convert superblock info", -1);
++    
+     return 0;
+ }
+ 
+@@ -1336,14 +1336,14 @@
+ 
+     /* Make sure the name/version number is correct */
+     if (strcmp(name, "LLNLsilo"))
+-        H5Epush_ret(func, H5E_ERR_CLS, H5E_FILE, H5E_BADVALUE, "invalid silo superblock", -1)
+-
++      H5Epush_ret(func, H5E_ERR_CLS, H5E_FILE, H5E_BADVALUE, "invalid silo superblock", -1);
++    
+     buf += 8;
+     /* Decode block size */
+     assert(sizeof(hsize_t)<=8);
+     memcpy(x, buf, 8);
+     if (H5Tconvert(H5T_STD_U64LE, H5T_NATIVE_HSIZE, 1, x, NULL, H5P_DEFAULT)<0)
+-        H5Epush_ret(func, H5E_ERR_CLS, H5E_DATATYPE, H5E_CANTCONVERT, "can't convert superblock info", -1)
++      H5Epush_ret(func, H5E_ERR_CLS, H5E_DATATYPE, H5E_CANTCONVERT, "can't convert superblock info", -1);
+     ap = (hsize_t*)x;
+     /*file->block_size = *ap; ignore stored value for now */
+ 
+diff -ur ../silo-4.10.2/src/hdf5_drv/H5FDsilo.h ./src/hdf5_drv/H5FDsilo.h
+--- ../silo-4.10.2/src/hdf5_drv/H5FDsilo.h	2013-12-18 12:22:36.000000000 -0600
++++ ./src/hdf5_drv/H5FDsilo.h	2021-07-02 11:08:53.564090879 -0500
+@@ -74,12 +74,17 @@
+ 
+ #include "hdf5.h"
+ 
+-/* useful macro for comparing HDF5 versions */
++/* useful macros for comparing HDF5 versions */
+ #define HDF5_VERSION_GE(Maj,Min,Rel)  \
+         (((H5_VERS_MAJOR==Maj) && (H5_VERS_MINOR==Min) && (H5_VERS_RELEASE>=Rel)) || \
+          ((H5_VERS_MAJOR==Maj) && (H5_VERS_MINOR>Min)) || \
+          (H5_VERS_MAJOR>Maj))
+ 
++#define HDF5_VERSION_LE(Maj,Min,Rel)  \
++        (((H5_VERS_MAJOR==Maj) && (H5_VERS_MINOR==Min) && (H5_VERS_RELEASE<=Rel)) || \
++         ((H5_VERS_MAJOR==Maj) && (H5_VERS_MINOR<Min)) || \
++         (H5_VERS_MAJOR<Maj))
++
+ #if HDF5_VERSION_GE(1,8,4)
+ 
+ #include "H5Ipublic.h"
+diff -ur ../silo-4.10.2/src/hdf5_drv/silo_hdf5.c ./src/hdf5_drv/silo_hdf5.c
+--- ../silo-4.10.2/src/hdf5_drv/silo_hdf5.c	2014-09-29 18:34:54.000000000 -0500
++++ ./src/hdf5_drv/silo_hdf5.c	2021-07-02 11:08:53.568090945 -0500
+@@ -4754,7 +4754,7 @@
+         /* default HDF5 mpi drivers */
+         case DB_FILE_OPTS_H5_DEFAULT_MPIP:
+         {
+-#ifdef H5_HAVE_PARALLEL
++#if defined(H5_HAVE_PARALLEL) && HDF5_VERSION_LE(1,8,12)
+             h5status |= H5Pset_fapl_mpiposix(retval, MPI_COMM_SELF, TRUE);
+ #else
+             H5Pclose(retval);
+@@ -5076,7 +5076,12 @@
+                     }
+                     else
+                     {
++#if HDF5_VERSION_LE(1,8,12)
+                         h5status |= H5Pset_fapl_mpiposix(retval, mpi_comm, use_gpfs_hints);
++#else
++                        H5Pclose(retval);
++                        return db_perror("HDF5 MPI VFD", E_NOTENABLEDINBUILD, me);
++#endif
+                     }
+ #else 
+                     H5Pclose(retval);
+@@ -15773,10 +15778,18 @@
+         if (strchr(names[i], ':')) iop[i].offset = HADDR_MAX;
+         else
+         {
++#if HDF5_VERSION_GE(1,12,0)
++            H5O_info1_t oinfo;
++#else
+             H5O_info_t oinfo;
++#endif
+             hid_t oid;
+             if ((oid=H5Oopen(dbfile->cwg, names[i], H5P_DEFAULT))<0 ||
++#if HDF5_VERSION_GE(1,10,5)
++                 H5Oget_info2(oid, &oinfo, H5O_INFO_BASIC)<0 ||
++#else
+                  H5Oget_info(oid, &oinfo)<0 ||
++#endif
+                  H5Oclose(oid)<0)
+                 iop[i].offset = HADDR_MAX;
+             else
