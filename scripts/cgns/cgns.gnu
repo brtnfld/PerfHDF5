@@ -139,7 +139,7 @@ set cbtics  norangelimit autofreq
 set rtics axis in scale 1,0.5 nomirror norotate  autojustify
 set rtics  norangelimit autofreq 
 unset ttics
-set title "CGNS serial make, Jelly^{ntimes=4}" 
+set title "CGNS serial make, Jelly^{ntimes=10}" 
 set title  font ", 36" norotate
 set timestamp bottom 
 set timestamp "" 
@@ -194,7 +194,7 @@ GNUTERM = "qt"
 date = strftime("%m/%d/%Y", time(0))
 
 plot newhistogram "1.8", \
-'cgns-timings.5' i 0 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#00608c",\
+'cgns-timings.7' i 0 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#00608c",\
 newhistogram "1.10",\
 '' i 1 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#9764b2",\
 newhistogram "1.12", \

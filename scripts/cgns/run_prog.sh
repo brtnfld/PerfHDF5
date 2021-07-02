@@ -205,13 +205,13 @@ do
     ONE="1."
     if [  $HDF5BUILD = 1 ]; then
 	cd hdf5
-        git checkout .
+        git checkout -f .
 
         if [[ $i =~ ^[0-9].* ]]; then
 
             if git show-ref --tags | grep "tags/hdf5-1_$i$"; then
                 # found tag
-                git checkout tags/hdf5-1_$i
+                git checkout -f tags/hdf5-1_$i
                 status=$?
                 if [[ $status != 0 ]]; then
                     printf "\n%bgit checkout tags/hdf5-1_$i #FAILED%b \n\n" "$red" "$nc"
@@ -219,7 +219,7 @@ do
                 fi
             else
                 # tag not found, must be a branch
-                git checkout hdf5_1_$i
+                git checkout -f hdf5_1_$i
                 status=$?
                 if [[ $status != 0 ]]; then
                     printf "\n%bgit checkout hdf5_1_$i #FAILED%b \n\n" "$red " "$nc"
@@ -231,7 +231,7 @@ do
             fi
             BUILD_DIR=build_1_$i
 	else
-	    git checkout $i
+	    git checkout -f $i
 	    ./autogen.sh
             BUILD_DIR=build_$i
             ONE=""
