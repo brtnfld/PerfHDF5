@@ -47,7 +47,7 @@ HDF5=""
 PREFIX=""
 ONE="1."
 NPROCS=8
-TOPDIR=$PWD
+TOPDIR=`pwd`
 SIZE=1M
 
 POSITIONAL=()
@@ -82,7 +82,7 @@ case $key in
     PTEST=1
     shift # past argument
     shift # past value
-    if echo "$iSIZE" | grep -q 'M'; then
+    if echo "$iSIZE" | grep -qE "M|K|G"; then
         SIZE="$iSIZE" # Size of parallel problem
         shift # past value
     fi
@@ -100,7 +100,7 @@ case $key in
     exit 0
     ;;
     *)    # unknown option
-    printf "\n$red ERROR: unknown option $key $nc\n"
+    printf "\n$red ERROR: unknown script option $key $nc\n"
     exit 1
     ;;
 esac
@@ -176,15 +176,15 @@ fi
 # Output all the results in the macsio-timings file.
 #
 
-# List of all the HDF5 versions to run through
-VER_HDF5_0="8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6"
+# List of all the HDF5 versions to run through, uses H5Iis_valid (1.8.3)
+VER_HDF5_0="8_3-patched 8_4-patch1 8_5-patch1 8_6"
 VER_HDF5_1="8_7 8_8 8_9 8_10-patch1"
 VER_HDF5_2="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21 8_22 8"
 VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 10_6 10_7 10 12_0 12 develop"
 
-VER_HDF5=" $VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
+VER_HDF5="$VER_HDF5_0 $VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
 #VER_HDF5="$VER_HDF5_3"
-VER_HDF5="8_7 develop"
+#VER_HDF5="develop"
 
 export LIBS="-ldl"
 export FLIBS="-ldl"
@@ -221,8 +221,12 @@ if [ $MACSIOBUILD = 1 ]; then
     printf "$nc"
     git clone https://github.com/LLNL/json-cwx
     cd json-cwx/json-cwx
+    wget -O config.guess 'https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD'
+    wget -O config.sub 'https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=HEAD'
+
     sh autogen.sh
-    JSON_DIR=$PWD/.plocal
+    PWD_DIR=`pwd -P`
+    JSON_DIR=$PWD_DIR/.plocal
     ./configure --prefix=$JSON_DIR
     make && make install
     cd $TOPDIR
@@ -230,18 +234,22 @@ if [ $MACSIOBUILD = 1 ]; then
     ## Get SILO ##    
     wget https://wci.llnl.gov/sites/wci/files/2021-01/silo-4.10.2.tgz
     tar xvzf silo-4.10.2.tgz
-    cd silo-4.10.2
+    cd silo-4.10.2/config
+    wget -O config.guess 'https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD'
+    wget -O config.sub 'https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=HEAD'
+    cd ..
     patch -p1 < ../silo.v2.patch
     status=$?
     if [[ $status != 0 ]]; then
         printf "$red" "ERROR IN PATCHING SILO #FAILED \n" "$nc"
         exit $status
     fi
-    SILO_SRC=$PWD
+    SILO_SRC=`pwd -P`
     cd $TOPDIR
 
 else
-   JSON_DIR=$PWD/json-cwx/.plocal
+   PWD_DIR=`pwd -P`
+   JSON_DIR=$PWD_DIR/json-cwx/.plocal
 fi
 
 #if [ $MACSIOBUILD = 1 ]; then
@@ -323,7 +331,7 @@ do
             HDF5_OPTS="$HDF5_OPTS --disable-tools --disable-tests"
         fi
 
-	HDF5=$PWD
+	HDF5=`pwd -P`
         cmd="../configure --disable-fortran --disable-hl --without-zlib --without-szlib  --disable-shared $HDF5_OPTS"
         #cmd="../configure --disable-fortran --disable-hl --with-zlib=$ZLIB_DIR --without-szlib  --disable-shared $HDF5_OPTS"
 
@@ -367,14 +375,15 @@ do
 
         mkdir  silo.$i
         cd silo.$i
-        SILO_DIR=$PWD/silo
+        PWD_DIR=`pwd -P`
+        SILO_DIR=$PWD_DIR/silo
 
         #export ZLIB_LIBRARIES="$ZLIB_DIR"
         #export LDFLAGS="-L$ZLIB_DIR/lib"
         #export LIBS="-lz -ldl"
         #export LD_LIBRARY_PATH="$LDFLAGS:$LD_LIBRARY_PATH"
 
-        SILO_DIR=$PWD/silo
+        SILO_DIR=$PWD_DIR/silo
 
         LIB_ARCH="lib64"
         if [ -d "$HDF5/hdf5/lib" ]; then
@@ -387,42 +396,78 @@ do
         printf "$yel $cmd $nc \n"
         $cmd
 
-        make && make install
+        make -j 8
+        status=$?
+        if [[ $status != 0 ]]; then
+            echo "Silo make #FAILED"
+            exit $status
+        fi
+
+        make install
+        status=$?
+        if [[ $status != 0 ]]; then
+            echo "Silo make installed #FAILED"
+            exit $status
+        fi
 
         cd $TOPDIR
 
         ## MACSIO ##
-        git clone https://github.com/brtnfld/MACSio.git
+        printf "$yel"
+        printf "   __  ______  __________     \n"
+        printf "  /  |/  / _ |/ ___/ __(_)__  \n"
+        printf " / /|_/ / __ / /___\ \/ / _ \ \n"
+        printf "/_/  /_/_/ |_\___/___/_/\___/ \n"
+        printf "$nc \n"
+
+        if [ ! -d "MACSio" ]; then
+          git clone https://github.com/brtnfld/MACSio.git
+        fi
 	cd MACSio
         if [ -d "macsio.$i" ]; then
-            rm -fr build.$i
+            rm -fr macsio.$i
         fi
         mkdir macsio.$i
         cd macsio.$i
 
-        cmd="cmake -D CMAKE_INSTALL_PREFIX=$PWD \
+        cmd="cmake -D CMAKE_INSTALL_PREFIX=$PWD_DIR \
             -D CMAKE_BUILD_TYPE=Production \
-            -D CMAKE_EXE_LINKER_FLAGS="-ldl" \
+            -D JSON-CWX_LIBRARIES=$JSON_DIR/lib/libjson-cwx.a \
+            -D JSON-CWX_INCLUDE_DIRS=$JSON_DIR/include \
             -D WITH_JSON-CWX_PREFIX=$JSON_DIR \
             -D WITH_SILO_PREFIX=$SILO_DIR \
+            -D SILO_LIBRARIES=$SILO_DIR/lib/libsiloh5.a \
+            -D SILO_INCLUDE_DIRS=$SILO_DIR/include \
             -D ENABLE_HDF5_PLUGIN=ON \
             -D ENABLE_HDF5_ZLIB=OFF \
             -D WITH_HDF5_PREFIX=$HDF5/hdf5 \
             -D ENABLE_HDF5_SZIP=OFF $TOPDIR/MACSio"
-
+         #   -D CMAKE_EXE_LINKER_FLAGS=\"-ldl \" \
          #   -DENABLE_HDF5_ZLIB=ON \
          #   -DWITH_ZLIB_PREFIX=$ZLIB_DIR \
          #   -DZLIB_LIBRARIES=$ZLIB_DIR/lib/libz.a \
 
         printf "$yel $cmd $nc \n"
         $cmd
-
+        status=$?
+       if [[ $status != 0 ]]; then
+            echo "MACSIO cmake #FAILED"
+            exit $status
+        fi
+        
         make -j 8
 	status=$?
 	if [[ $status != 0 ]]; then
 	    echo "MACSIO make #FAILED"
 	    exit $status
 	fi
+        make install
+        status=$?
+        if [[ $status != 0 ]]; then
+            echo "MACSIO make install #FAILED"
+            exit $status
+        fi
+
         cd ..
     fi
 
@@ -464,7 +509,7 @@ do
               /usr/bin/time -v -f "%e real" -o "results" $cmd 
               ETIME=`grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'`
 	      VAL+=${ETIME}"," 
-              ls -aolFh *.h5
+              ls -aolFh 
             done
             VAL2=`echo $VAL | sed 's/\,/\n/g'`
             VALS=`echo "$VAL2" | awk '{if(min==""){min=max=$1}; if($1>max) {max=$1}; if($1<min) {min=$1}; total+=$1; count+=1} END {print total/count, min, max}'`
