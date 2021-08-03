@@ -182,7 +182,7 @@ VER_HDF5_1_8b="8_7 8_8 8_9 8_10-patch1"
 VER_HDF5_1_8c="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19"
 VER_HDF5_1_8d="8_20 8_21 8_22 8"
 VER_HDF5_1_10="10_0-patch1 10_1 10_2 10_3 10_4 10_5 10_6 10_7 10"
-VER_HDF5_1_12="12_0 12"
+VER_HDF5_1_12="12_0 12_1 12"
 VER_HDF5_MISC="develop"
 VER_HDF5="$VER_HDF5_1_8a $VER_HDF5_1_8b $VER_HDF5_1_8c $VER_HDF5_1_8d $VER_HDF5_1_10 $VER_HDF5_1_12 $VER_HDF5_MISC"
 export LIBS="-ldl"
@@ -204,6 +204,14 @@ do
     PRE="1_$i"
     ONE="1."
     if [  $HDF5BUILD = 1 ]; then
+
+        printf "$yel"
+        printf "   __ _____  ________ \n"
+        printf "  / // / _ \/ __/ __/ \n"
+        printf " / _  / // / _//__ \  \n"
+        printf "/_//_/____/_/ /____/  \n"
+        printf "$nc"
+
 	cd hdf5
         git checkout -f .
 
@@ -296,6 +304,15 @@ do
 
 # Build EXAMPLE
     if [ $PROGBUILD = 1 ]; then
+        printf "$yel"
+        printf "    ____                                       \n"               
+        printf "   / __ \_________  ____ __________ _____ ___  \n"
+        printf "  / /_/ / ___/ __ \/ __ `/ ___/ __ `/ __ `__ \ \n"
+        printf " / ____/ /  / /_/ / /_/ / /  / /_/ / / / / / / \n"
+        printf "/_/   /_/   \____/\__, /_/   \__,_/_/ /_/ /_/  \n"
+        printf "                 /____/                        \n"
+        printf "${EXEC}                                        \n"
+        printf "$nc"
 
         EXT="${SRC##*.}"
         if [[ $EXT == "cpp" || $EXT == "cxx" || $EXT == ".cc" ]]; then
