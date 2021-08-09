@@ -175,16 +175,19 @@ fi
 
 # Note "hdf5-" represents a tagged version, otherwise it is a branch
 
-VER_HDF5_1_6="6_0 6_1 6_2 6_5 6_6 6_7 6_8 6_9 6_10"
+VER_HDF5_1_6="6_0 6_1 6_2 6_3 6_4 6_5 6_6 6_7 6_8 6_9 6_10"
 VER_HDF5_1_8a="8_0 8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6"
-VER_HDF5_1_8a="8_0 8_1 8_2 8_4-patch1 8_5-patch1 8_6"
-VER_HDF5_1_8b="8_7 8_8 8_9 8_10-patch1"
-VER_HDF5_1_8c="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19"
+VER_HDF5_1_8a="8_0 8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6"
+VER_HDF5_1_8b="8_3-patched 8_4-patch1 8_5-patch1 8_6 8_7 8_8 8_9 8_10-patch1"
+VER_HDF5_1_8c="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19" 
 VER_HDF5_1_8d="8_20 8_21 8_22 8"
-VER_HDF5_1_10="10_0-patch1 10_1 10_2 10_3 10_4 10_5 10_6 10_7 10"
+VER_HDF5_1_10="10_0-patch1 10_1 10_3 10_4 10_5 10_6 10_7 10"
 VER_HDF5_1_12="12_0 12_1 12"
 VER_HDF5_MISC="develop"
 VER_HDF5="$VER_HDF5_1_8a $VER_HDF5_1_8b $VER_HDF5_1_8c $VER_HDF5_1_8d $VER_HDF5_1_10 $VER_HDF5_1_12 $VER_HDF5_MISC"
+VER_HDF5="$VER_HDF5_1_8b $VER_HDF5_1_8c $VER_HDF5_1_8d $VER_HDF5_1_10 $VER_HDF5_1_12 $VER_HDF5_MISC"
+#VER_HDF5="6_3 6_4"
+VER_HDF5="$VER_HDF5_1_6"
 export LIBS="-ldl"
 export FLIBS="-ldl"
 
@@ -233,20 +236,19 @@ do
                     printf "\n%bgit checkout hdf5_1_$i #FAILED%b \n\n" "$red " "$nc"
                     exit $status
                 fi
-                if test -f "autogen.sh";then
-                    ./autogen.sh
-                fi
             fi
             BUILD_DIR=build_1_$i
 	else
 	    git checkout -f $i
-	    ./autogen.sh
             BUILD_DIR=build_$i
             ONE=""
 	fi
 
         rm -fr $BUILD_DIR
         mkdir $BUILD_DIR
+        if test -f "autogen.sh"; then
+           ./autogen.sh
+        fi
         cd $BUILD_DIR
 
         CXXFLAGS=""
@@ -278,6 +280,11 @@ do
         printf "\n%b$CONFIG_CMD %b \n\n" "$mag" "$nc"
 
         $CONFIG_CMD
+        status=$?
+        if [[ $status != 0 ]]; then
+            echo "HDF5 configure #FAILED"
+            exit $status
+        fi
 
 	make -i -j 16
 	status=$?
@@ -305,9 +312,9 @@ do
 # Build EXAMPLE
     if [ $PROGBUILD = 1 ]; then
         printf "$yel"
-        printf "    ____                                       \n"               
+        printf "    ____                                       \n"
         printf "   / __ \_________  ____ __________ _____ ___  \n"
-        printf "  / /_/ / ___/ __ \/ __ `/ ___/ __ `/ __ `__ \ \n"
+        printf "  / /_/ / ___/ __ \/ __  / ___/ __ \ / __ \__\ \n"
         printf " / ____/ /  / /_/ / /_/ / /  / /_/ / / / / / / \n"
         printf "/_/   /_/   \____/\__, /_/   \__,_/_/ /_/ /_/  \n"
         printf "                 /____/                        \n"
@@ -318,8 +325,8 @@ do
         if [[ $EXT == "cpp" || $EXT == "cxx" || $EXT == ".cc" ]]; then
             LIBS="-lstdc++ -I$HDF5/hdf5/include"
         fi
-
-        echo "$HDF5/hdf5/bin/${H5CC} -o ${EXEC}_${BUILD_DIR} $DEF $SRC $LIBS"
+        CFLAGS="-U__STRICT_ANSI__"
+        printf " $yel $HDF5/hdf5/bin/${H5CC} $CFLAGS -o ${EXEC}_${BUILD_DIR} $DEF $SRC $LIBS $nc \n"
         $HDF5/hdf5/bin/${H5CC} $CFLAGS -o ${EXEC}_${BUILD_DIR} $DEF $SRC $LIBS
 	status=$?
 	if [[ $status != 0 ]]; then
@@ -347,7 +354,8 @@ do
         rm -f $TOPDIR/${EXEC}_$j0
         printf "%b$MPIEXEC ./${EXEC}_${BUILD_DIR} $ARGS %b\n" "$mag" "$nc"
         for ((n=1;n<=${NTIMES};n++));do
-            /usr/bin/time -v -f "%e real" -o "results"  $MPIEXEC ./${EXEC}_${BUILD_DIR} $ARGS
+            cmd="/usr/bin/time -v -f \"%e real\" -o \"results\"  $MPIEXEC ./${EXEC}_${BUILD_DIR} $ARGS"
+            eval $cmd
             #/usr/bin/time -v -f "%e real" -o "results_${EXEC}_${BUILD_DIR}" $MPIEXEC ./${EXEC}_${BUILD_DIR} $ARGS
             ETIME=`grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'`
             VAL+=${ETIME}","
@@ -381,8 +389,8 @@ if [ $TEST = 1 ]; then
         ((i=i+1))
         FILE_T=${PREFIX}PROG_${EXEC}.${i}
       done
-
-    echo "#nprocs=$NPROCS, ntim=$NTIMES" > ${FILE_T}
+    echo "# $cmd" > ${FILE_T}
+    echo "#nprocs=$NPROCS, ntim=$NTIMES" >> ${FILE_T}
     #echo "#nprocs=$NPROCS, nelem=$NELEM, ntim=$NTIMES" > ${FILE_M}
     cat ${EXEC}__* >> ${FILE_T}
     #cat cgns_mem_* >> ${FILE_M}
@@ -393,6 +401,6 @@ if [ $TEST = 1 ]; then
     sed -i 's/\(1.6\|1.8\|1.10\|1.12\|1.14\) [0-9].*/&\n\n/g' ${FILE_T}
     #sed -i 's/\(1.8\|1.10\|1.12\|1.14\) [0-9].*/&\n\n/g' ${FILE_M}
 
-    rm -f ${EXEC}_*
+    #rm -f ${EXEC}_*
 fi
 
