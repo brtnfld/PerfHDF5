@@ -140,7 +140,6 @@ set cbtics  norangelimit autofreq
 set rtics axis in scale 1,0.5 nomirror norotate  autojustify
 set rtics  norangelimit autofreq 
 unset ttics
-set title "Many Datasets, Jelly^{(ntimes per version=10)}" 
 set title  font ", 36" norotate
 set timestamp bottom 
 set timestamp "" 
@@ -148,7 +147,7 @@ set timestamp  font "" norotate
 set trange [ * : * ] noreverse nowriteback
 set urange [ * : * ] noreverse nowriteback
 set vrange [ * : * ] noreverse nowriteback
-set xlabel "HDF5 Version"
+set xlabel "\nHDF5 Version"
 set xlabel  font "Times Bold,36" textcolor lt -1 norotate offset -1,-2
 set x2label "" 
 set x2label  font "" textcolor lt -1 norotate
@@ -192,7 +191,7 @@ GNUTERM = "qt"
 
 date = strftime("%m/%d/%Y", time(0))
 
-set bmargin 8
+set bmargin 10
 set lmargin 12
 
 #plot newhistogram "1.8", \
@@ -208,15 +207,55 @@ set lmargin 12
 #'prog-timing' i 3 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#ffa600",\
 #'prog-timing.1' i 3 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#888888"
 
-plot newhistogram "1.8" tc rgb "#00608c", \
-'prog-timing' i 0 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#00608c",\
-newhistogram "1.10" tc rgb "#9764b2",\
-'' i 1 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#9764b2",\
-newhistogram "1.12" tc rgb "#ff5f7e", \
-'' i 2 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#ff5f7e",\
-newhistogram date tc rgb "#ffa600",\
-'' i 3 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#ffa600"
+#plot newhistogram "1.8" tc rgb "#00608c", \
+#'pmacsio-timings.quartz' i 0 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#00608c",\
+#newhistogram "1.10" tc rgb "#9764b2",\
+#'' i 1 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#9764b2",\
+#newhistogram "1.12" tc rgb "#ff5f7e", \
+#'' i 2 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#ff5f7e",\
+#newhistogram date tc rgb "#ffa600",\
+#'' i 3 using 2:3:4:xtic(1) noti lt 3 linecolor rgb "#ffa600"
 
+
+#set title "Jelly^{(ntimes per version=10)} \n nd=950000, compat[0:H5F\\_LIBVER\\_LATEST, 1:DEFAULT]"
+#set yrange [0:50]
+#set grid y lw 1.25
+
+set key top left
+set title "Jelly^{(ntimes per version=10)} \n nd=1000,1000  compat[0:H5F\\_LIBVER\\_LATEST, 1:DEFAULT]"
+plot newhistogram "1.6" tc rgb "#337000", \
+'PROG_testhdf5.8' i 0 using 2:3:4:xtic(1) ti "N/A" lt 3 linecolor rgb "#337000",\
+newhistogram "1.8" tc rgb "#00608c", \
+'PROG_testhdf5.1' i 0 using 2:3:4:xtic(1) ti "compat 1" lt 3 linecolor rgb "#00608c",\
+'PROG_testhdf5.2' i 0 using 2:3:4:xtic(1) ti "compat 0" lt 3 linecolor rgb "#6d92b1",\
+newhistogram "1.10" tc rgb "#9764b2",\
+'PROG_testhdf5.1' i 1 using 2:3:4:xtic(1) ti "compat 1" lt 3 linecolor rgb "#9764b2",\
+'PROG_testhdf5.2' i 1 using 2:3:4:xtic(1) ti "compat 0" lt 3 linecolor rgb "#ba96cc",\
+newhistogram "1.12" tc rgb "#ff5f7e", \
+'PROG_testhdf5.1' i 2 using 2:3:4:xtic(1) ti "compat 1" lt 3 linecolor rgb "#ff5f7e",\
+'PROG_testhdf5.2' i 2 using 2:3:4:xtic(1) ti "compat 0" lt 3 linecolor rgb "#ff99a7",\
+newhistogram date tc rgb "#ffa600",\
+'PROG_testhdf5.1' i 3 using 2:3:4:xtic(1) ti "compat 1" lt 3 linecolor rgb "#ffa600",\
+'PROG_testhdf5.2' i 3 using 2:3:4:xtic(1) ti "compat 0" lt 3 linecolor rgb "#ffc36c"
+
+
+#set grid y lw 1.25
+#set key top left
+#set title "Jelly^{(ntimes per version=10)} \n nd=950000, compat[0:H5F\\_LIBVER\\_LATEST, 1:DEFAULT]"
+#plot newhistogram "1.6" tc rgb "#337000", \
+#'PROG_testhdf5.7' i 0 using 2:3:4:xtic(1) ti "N/A" lt 3 linecolor rgb "#337000",\
+#newhistogram "1.8" tc rgb "#00608c", \
+#'PROG_testhdf5.4' i 0 using 2:3:4:xtic(1) ti "compat 1" lt 3 linecolor rgb "#00608c",\
+#'PROG_testhdf5.3' i 0 using 2:3:4:xtic(1) ti "compat 0" lt 3 linecolor rgb "#6d92b1",\
+#newhistogram "1.10" tc rgb "#9764b2",\
+#'PROG_testhdf5.4' i 1 using 2:3:4:xtic(1) ti "compat 1" lt 3 linecolor rgb "#9764b2",\
+#'PROG_testhdf5.3' i 1 using 2:3:4:xtic(1) ti "compat 0" lt 3 linecolor rgb "#ba96cc",\
+#newhistogram "1.12" tc rgb "#ff5f7e", \
+#'PROG_testhdf5.4' i 2 using 2:3:4:xtic(1) ti "compat 1" lt 3 linecolor rgb "#ff5f7e",\
+#'PROG_testhdf5.3' i 2 using 2:3:4:xtic(1) ti "compat 0" lt 3 linecolor rgb "#ff99a7",\
+#newhistogram date tc rgb "#ffa600",\
+#'PROG_testhdf5.4' i 3 using 2:3:4:xtic(1) ti "compat 1" lt 3 linecolor rgb "#ffa600",\
+#'PROG_testhdf5.3' i 3 using 2:3:4:xtic(1) ti "compat 0" lt 3 linecolor rgb "#ffc36c"
 
 
 #    EOF

@@ -349,10 +349,15 @@ do
     if [ $TEST = 1 ]; then
         j0=$(printf "%02d" $j)
         if [[ $PARALLEL != 1 ]]; then
-            cd $TOPDIR/CGNS.$i/src/tests
-            make -j 16
-      # Time make check (does not include the complilation time)
-            NTIMES=4
+            cd $TOPDIR/CGNS.$i/src
+        # Build all the the tests
+            cd tests; make -j 16; cd $TOPDIR/CGNS.$i/src
+            cd examples/fortran; make -j 16; cd $TOPDIR/CGNS.$i/src
+            cd Test_UserGuideCode/Fortran_code; make -j 16; cd $TOPDIR/CGNS.$i/src
+            cd Test_UserGuideCode/C_code; make -j 16; cd $TOPDIR/CGNS.$i/src
+            
+        # Time make check (does not include the complilation time)
+            NTIMES=10
             VAL=""
             rm -f $TOPDIR/cgns_time_$j0
             for ((n=1;n<=${NTIMES};n++));do
