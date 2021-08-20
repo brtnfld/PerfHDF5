@@ -297,7 +297,7 @@ static hid_t do_group(hid_t gid, int idx, int level, int doread, int estlink, in
 #endif
         {
             H5E_BEGIN_TRY {
-#if HDF5_VERSION_GE(1,8,3)
+#if HDF5_VERSION_GE(1,8,0)
                 grp = H5Gopen(gid, tmpDir, H5P_DEFAULT);
 #else
                 grp = H5Gopen(gid, tmpDir);
