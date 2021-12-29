@@ -180,7 +180,7 @@ fi
 VER_HDF5_0="8_3-patched 8_4-patch1 8_5-patch1 8_6"
 VER_HDF5_1="8_7 8_8 8_9 8_10-patch1"
 VER_HDF5_2="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21 8_22 8"
-VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 10_6 10_7 10 12_0 12 develop"
+VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 10_6 10_7 10_8 10 12_0 12_1 12 13_0 develop"
 
 VER_HDF5="$VER_HDF5_0 $VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
 #VER_HDF5="$VER_HDF5_3"
@@ -555,7 +555,7 @@ if [ $TEST = 1 ]; then
     #sed -i 's/_/./g' ${FILE_M}
 
 # Add extra spaces for gnuplot formating
-    sed -i 's/\(1.8\|1.10\|1.12\|1.14\) [0-9].*/&\n\n/g' ${FILE_T}
+    sed -i 's/\(1.8\|1.10\|1.12\|1.13\|1.14\) [0-9].*/&\n\n/g' ${FILE_T}
     #sed -i 's/\(1.8\|1.10\|1.12\|1.14\) [0-9].*/&\n\n/g' ${FILE_M}
 
     rm -f macsio_*
