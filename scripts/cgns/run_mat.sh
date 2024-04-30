@@ -5,18 +5,18 @@
 #
 # Download and Build all the versions of hdf5
 #
-#./run_matlab.sh --enable-parallel --notest --matlab_nobuild
+#./run_matlab.sh --notest --matlab_nobuild
 #
 # Build different versions of MATLAB 
 #
-#./run_matlab.sh --enable-parallel --hdf5_nobuild --notest
+#./run_matlab.sh --hdf5_nobuild --notest
 #
 # Build both, no testing
 #
-# ./run_matlab.sh --enable-parallel --notest
+# ./run_matlab.sh --notest
 #
 # run the tests
-# ./run_matlab.sh --enable-parallel --hdf5_nobuild --matlab_nobuild --ptest 4 2014
+# ./run_matlab.sh --hdf5_nobuild --matlab_nobuild --ptest 4 2014
 
 red=$'\e[1;31m'
 grn=$'\e[1;32m'
@@ -119,63 +119,103 @@ fi
 # List of all the HDF5 versions to run through
 VER_HDF5_0="6_0 6_1 6_2 6_5 6_6 6_7 6_8 6_9 6_10"
 VER_HDF5_1="$VER_HDF5_0 8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6 8_7 8_8 8_9 8_10-patch1"
-VER_HDF5_2="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21"
-VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 1_10 HDFFV-10658-performance-drop-for-1-10 develop HDFFV-10658-performance-drop-from-1-8"
-
+VER_HDF5_2="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21 8_22 8_23 8"
+VER_HDF5_3="10_0-patch1 10_1 10_3 10_4 10_5 10_6 10_7 10_8 10_9 10_10 10_11 10 12_0 12_1 12_2 12_3 12 14_0 14_1 14_2 14_3 14_4 14 develop"
+#VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 10_6 10_7 10_8 10_9 10_10 10_11 10 12_0 12_1 12_2 12_3 12 14_0 14_1 14_2 14_3 14_4 14 develop"
+#VER_HDF5="10_9 10_10 10_11 10 12_0 12_1 12_2 12_3 12 14_0 14_1 14_2 14_3 14_4 14 develop"
 VER_HDF5="$VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
-VER_HDF5="10_3 10_4 10_5 merge_hyperslab_update_01 refactor_obj_create_params develop"
-#VER_HDF5="8_1"
+#VER_HDF5="10_3 10_4 10_5 10_6 10_7 10_8 1_10 12_0 1_12 develop"
 export LIBS="-ldl"
 export FLIBS="-ldl"
 
 if [  $HDF5BUILD = 1 ]; then
     rm -fr hdf5
-    git clone https://brtnfld@bitbucket.hdfgroup.org/scm/~songyulu/hdf5_ray.git hdf5
- #   git clone https://brtnfld@bitbucket.hdfgroup.org/scm/hdffv/hdf5.git
+    git clone https://github.com/HDFGroup/hdf5.git 
 fi
 
 #if [ $MATLABBUILD = 1 ]; then
 #    git clone https://github.com/MATLAB/MATLAB.git
 #fi
-
+current_time=$(date "+%Y.%m.%d-%H.%M.%S")
+XTICS=""
 j=0
 for i in ${VER_HDF5}
 do
     status=0
     j=$[j + 1]
 # Build HDF5
-    PRE="1_$i"
-    ONE="1."
-    if [  $HDF5BUILD = 1 ]; then
+    if [ $HDF5BUILD = 1 ]; then
 	cd hdf5
+        git checkout .
 
         if [[ $i =~ ^[0-9].* ]]; then
-	    git checkout tags/hdf5-1_$i
-	    rm -fr build_1_$i
-	    mkdir build_1_$i
-	    cd build_1_$i
+
+            if git show-ref --tags | grep "tags/hdf5-1_$i$"; then
+                # found tag
+                git checkout -f tags/hdf5-1_$i
+                status=$?
+                if [[ $status != 0 ]]; then
+                    printf "\n%bgit checkout -f tags/hdf5-1_$i #FAILED%b \n\n" "$red" "$nc"
+                    exit $status
+                fi
+            else
+                # tag not found, must be a branch
+                git checkout -f hdf5_1_$i
+                status=$?
+                if [[ $status != 0 ]]; then
+                    printf "\n%bgit checkout hdf5_1_$i #FAILED%b \n\n" "$red" "$nc"
+                    exit $status
+                fi
+                if test -f "autogen.sh";then
+                    ./autogen.sh
+                fi
+            fi
+            BUILD_DIR=build_1_$i
 	else
-	    git checkout $i
+	    git checkout -f $i
 	    ./autogen.sh
-	    rm -fr build_$i
-	    mkdir build_$i
-	    cd build_$i
             ONE=""
+            BUILD_DIR=build_$i
 	fi
-	
+
+        rm -fr $BUILD_DIR
+        mkdir $BUILD_DIR
+        cd $BUILD_DIR
+
         CXXFLAGS=""
-	if [[ $i == 8*  || $i == 6* ]]; then
-	    HDF5_OPTS="--enable-production --enable-cxx $OPTS"
+	if [[ $i == 8* || $i == 6*  ]]; then
+	    HDF5_OPTS="--enable-production  --enable-cxx $OPTS"
             if [[ $i == 6* ]]; then
                 HDF5_OPTS="$HDF5_OPTS --prefix $PWD/hdf5"
                 CXXFLAGS="-DHDF5_1_6"
             fi
+            if [[ $HOSTNAME == summit* ]]; then
+                if  [[ $i =~ 8_[1-9].* || $i == 8 || $i == 6 ]]; then
+                    # wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.guess
+                    # wget 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' -O bin/config.sub
+                    git clone git://git.savannah.gnu.org/config.git
+                    cp config/config.guess ../bin/
+                    cp config/config.sub ../bin/
+                    rm -fr config
+                fi
+            fi
+
 	else
 	    HDF5_OPTS="--enable-build-mode=production --enable-cxx $OPTS"
 	fi
 
+        # Disable building tools and tests if option is available
+        if grep -q 'enable-tools' ../configure; then
+            HDF5_OPTS="$HDF5_OPTS --disable-tools --disable-tests"
+        fi
+
 	HDF5=$PWD
-	../configure --disable-fortran --disable-hl --without-zlib --without-szip $HDF5_OPTS
+        BUILD_CMD="../configure --disable-fortran --disable-hl --without-zlib --without-szlib  $HDF5_OPTS"
+
+        printf "$mag $BUILD_CMD $nc\n"
+
+	$BUILD_CMD
+
 	make -i -j 16
 	status=$?
 	if [[ $status != 0 ]]; then
@@ -188,8 +228,14 @@ do
 	    echo "HDF5 make install #FAILED"
 	    exit $status
         fi
-	cd ../../
+        cd ../../
     else
+       if [[ $i == 6* ]]; then
+            CXXFLAGS="-DHDF5_1_6"
+        else
+            CXXFLAGS=""
+        fi
+
         if [[ $i =~ ^[0-9].* ]]; then
 	    HDF5=$TOPDIR/hdf5/build_1_$i
 	else
@@ -200,21 +246,37 @@ do
 
 # Build EXAMPLE
     if [ $MATLABBUILD = 1 ]; then
-        echo "$HDF5/hdf5/bin/h5c++ -o writeLargeNumDsets writeLargeNumDsets.cpp"
-        $HDF5/hdf5/bin/h5c++ $CXXFLAGS -o writeLargeNumDsets writeLargeNumDsets.cpp
+        echo "$HDF5/hdf5/bin/h5c++ -o writeLargeNumDsets_$i writeLargeNumDsets.cpp"
+        $HDF5/hdf5/bin/h5c++ $CXXFLAGS -o writeLargeNumDsets_$i writeLargeNumDsets.cpp
 	status=$?
 	if [[ $status != 0 ]]; then
             echo "FAILED TO COMPILE writeLargeNumDsets.cpp"
-            rm -f writeLargeNumDsets
+            rm -f writeLargeNumDsets_$i
 	    exit $status
 	fi
     fi
     if [ $TEST = 1 ]; then
-        /usr/bin/time -v -f "%e real" -o "results" ./writeLargeNumDsets
-        rm -fr fileWithLargeNumDsets.h5
-        j0=$(printf "%02d" $j)
-        { echo -n "$ONE$i " & grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'; } > $TOPDIR/matlab_time_$j0
-        { echo -n "$ONE$i " & grep "Maximum resident" results | sed -n -e 's/^.*bytes): //p'; } > $TOPDIR/matlab_mem_$j0
+       NTIMES=60
+       VAL=""
+       echo "HDF5 Version = 1_$i"
+       rm -f time_x
+       echo "1_$i" > time_x
+       for ((n=1;n<=${NTIMES};n++));do
+          (/usr/bin/time -p  ./writeLargeNumDsets_$i;) &> t.out
+          grep -i "real" t.out | sed -e 's/.*\l\(.*\)/\1/' >> time_x
+          rm -fr fileWithLargeNumDsets.h5
+       done
+       if test -f matlab-timings.$current_time; then
+         cp matlab-timings.$current_time pre_x
+         paste -d' ' pre_x time_x > matlab-timings.$current_time
+         rm -f pre_x
+       else
+         cp time_x matlab-timings.$current_time
+       fi
+       VAR1="\"1_${i}\" "
+       count=$(( count + 1 ))
+       XTICS+=${VAR1}${count}" , "
+       #echo $XTICS
     fi
     if [ $MATLABBUILD = 1 ]; then
         if [ $TEST = 1 ]; then
@@ -223,16 +285,16 @@ do
     fi
     cd $TOPDIR
 done
-
 # Combine the timing numbers to a single file
 if [ $TEST = 1 ]; then
-    echo "#nprocs=$NPROCS, nelem=$NELEM" > ${PREFIX}matlab-timings
-    echo "#nprocs=$NPROCS, nelem=$NELEM" > ${PREFIX}matlab-memory
-    cat matlab_time_* >> ${PREFIX}matlab-timings
-    cat matlab_mem_* >> ${PREFIX}matlab-memory
-    sed -i 's/_/./g' ${PREFIX}matlab-timings
-    sed -i 's/_/./g' ${PREFIX}matlab-memory
+    echo "#set xtics ("${XTICS}") scale 0.0" >> matlab-timings.$current_time
+    #echo "#nprocs=$NPROCS, nelem=$NELEM" > ${PREFIX}matlab-timings.$current_time
+    #echo "#nprocs=$NPROCS, nelem=$NELEM" > ${PREFIX}matlab-memory.$current_time
+    #cat matlab_time_* >> ${PREFIX}matlab-timings.$current_time
+    #cat matlab_mem_* >> ${PREFIX}matlab-memory.$current_time
+    #sed -i 's/_/./g' ${PREFIX}matlab-timings.$current_time
+    #sed -i 's/_/./g' ${PREFIX}matlab-memory.$current_time
     
-    rm -f matlab_*
+    #rm -f matlab_*
 fi
 
