@@ -172,12 +172,12 @@ fi
 # List of all the HDF5 versions to run through
 VER_HDF5_0="8_1 8_2 8_3-patched 8_4-patch1 8_5-patch1 8_6"
 VER_HDF5_1="8_7 8_8 8_9 8_10-patch1"
-VER_HDF5_2="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21 8_22 8"
-VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 10_6 10_7 10 12_0 12 develop"
+VER_HDF5_2="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21 8_22 8_23 8"
+VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 10_6 10_7 10_8 10_9 10_10 10_11 10 12_0 12_1 12_2 12_3 12 14_0 14_1 14_2 14_3 14_4 14 develop"
 
 VER_HDF5=" $VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
 #VER_HDF5="$VER_HDF5_3"
-#VER_HDF5="develop"
+#VER_HDF5="8"
 
 export LIBS="-ldl"
 export FLIBS="-ldl"
@@ -261,7 +261,7 @@ do
         fi
 
 	HDF5=$PWD
-        BUILD_CMD="../configure --disable-fortran --disable-hl --without-zlib --without-szlib  $HDF5_OPTS"
+        BUILD_CMD="../configure --disable-fortran --enable-hl --without-zlib --without-szlib  $HDF5_OPTS"
 
         printf "$mag $BUILD_CMD $nc\n"
 
@@ -374,7 +374,7 @@ do
             make -j 16
       # Time make check (does not include the complilation time)
            # /usr/bin/time -v -f "%e real" -o "results" make test
-            NTIMES=4
+            NTIMES=5
             VAL=""
             rm -f $TOPDIR/cgns_time_$j0
             for ((n=1;n<=${NTIMES};n++));do
@@ -403,6 +403,8 @@ done
 # Combine the timing numbers to a single file
 if [ $TEST = 1 ]; then
 
+    current_time=$(date "+%Y.%m.%d-%H.%M.%S")
+
     i=1
     FILE_T=${PREFIX}cgns-timings
     until [ ! -f "${FILE_T}" ]
@@ -419,6 +421,7 @@ if [ $TEST = 1 ]; then
     #    FILE_M=${PREFIX}cgns-memory.${i}
     #  done
 
+    FILE_T=${FILE_T}.$current_time
     echo "#nprocs=$NPROCS, nelem=$NELEM, ntim=$NTIMES" > ${FILE_T}
     #echo "#nprocs=$NPROCS, nelem=$NELEM, ntim=$NTIMES" > ${FILE_M}
     cat cgns_time_* >> ${FILE_T}
