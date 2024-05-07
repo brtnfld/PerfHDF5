@@ -173,7 +173,7 @@ VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 10_6 10_7 10_8 10_9 10_10 10_11
 #VER_HDF5="$VER_HDF5_0 $VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
 VER_HDF5="$VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
 #VER_HDF5="$VER_HDF5_3"
-#VER_HDF5="10 12_0 develop"
+#VER_HDF5="12_1 12_2 12_3 12 14_0 14_1 14_2 14_3 14_4 14 develop"
 
 export LIBS="-ldl"
 export FLIBS="-ldl"
@@ -194,13 +194,13 @@ do
 # Build HDF5
     if [ $HDF5BUILD = 1 ]; then
 	cd hdf5
-        git checkout .
+        git checkout -f .
 
         if [[ $i =~ ^[0-9].* ]]; then
 
             if git show-ref --tags | grep "tags/hdf5-1_$i$"; then
                 # found tag
-                git checkout tags/hdf5-1_$i
+                git checkout -f tags/hdf5-1_$i
                 status=$?
                 if [[ $status != 0 ]]; then
                     printf "\n%bgit checkout tags/hdf5-1_$i #FAILED%b \n\n" "$red" "$nc"
@@ -208,7 +208,7 @@ do
                 fi
             else
                 # tag not found, must be a branch
-                git checkout hdf5_1_$i
+                git checkout -f hdf5_1_$i
                 status=$?
                 if [[ $status != 0 ]]; then
                     printf "\n%bgit checkout hdf5_1_$i #FAILED%b \n\n" "$red" "$nc"
@@ -220,7 +220,7 @@ do
             fi
             BUILD_DIR=build_1_$i
 	else
-	    git checkout $i
+	    git checkout -f $i
 	    ./autogen.sh
             ONE=""
             BUILD_DIR=build_$i

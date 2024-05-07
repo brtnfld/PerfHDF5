@@ -176,7 +176,7 @@ VER_HDF5_2="8_11 8_12 8_13 8_14 8_15-patch1 8_16 8_17 8_18 8_19 8_20 8_21 8_22 8
 #VER_HDF5_3="10_0-patch1 10_1 10_2 10_3 10_4 10_5 10_6 10_7 10_8 10_9 10_10 10_11 10 12_0 12_1 12_2 12_3 12 14_0 14_1 14_2 14_3 14_4 14 develop"
 VER_HDF5_3="10_0-patch1 10_1 10_3 10_4 10_5 10_6 10_7 10_8 10_9 10_10 10_11 10 12_0 12_1 12_2 12_3 12 14_0 14_1 14_2 14_3 14_4 14 develop"
 VER_HDF5=" $VER_HDF5_1 $VER_HDF5_2 $VER_HDF5_3"
-#VER_HDF5="$VER_HDF5_3"
+#VER_HDF5="8_7 14_4 14 develop"
 #VER_HDF5="8"
 
 export LIBS="-ldl"
@@ -190,6 +190,8 @@ if [ $HDF5BUILD = 1 ]; then
     git clone https://github.com/HDFGroup/hdf5.git
 fi
 
+current_time=$(date "+%Y.%m.%d-%H.%M.%S")
+count=0
 #if [ $CGNSBUILD = 1 ]; then
 #    git clone https://github.com/CGNS/CGNS.git
 #fi
@@ -294,9 +296,9 @@ do
     if [ $CGNSBUILD = 1 ]; then
 
         git clone https://github.com/CGNS/CGNS.git CGNS.$i
-        git checkout F2008
- 
+        
 	cd ${TOPDIR}/CGNS.$i/src
+        git checkout F2008
         CONFDIR="."
         
 #        if [ $TEST = 0 ]; then
@@ -360,15 +362,38 @@ do
         # Time make check (does not include the complilation time)
             NTIMES=10
             VAL=""
-            rm -f $TOPDIR/cgns_time_$j0
+            rm -f time_x
+            #if [[ $i != d* ]]; then
+            #  echo "1_$i" > time_x
+            #else
+	    #  echo "$i" > time_x
+            #fi
             for ((n=1;n<=${NTIMES};n++));do
-              /usr/bin/time -v -f "%e real" -o "results" make test
-              ETIME=`grep "Elapsed" results | sed -n -e 's/^.*ss): //p' | awk -F: '{ print ($1 * 60) + $2 }'`
-              VAL+=${ETIME}","
+               (/usr/bin/time -p make -i test;) &> t.out
+               cat t.out
+               grep "real " t.out | sed -e 's/.*\l\(.*\)/\1/' >> time_x
             done
-            VAL2=`echo $VAL | sed 's/\,/\n/g'`
-            VALS=`echo "$VAL2" | awk '{if(min==""){min=max=$1}; if($1>max) {max=$1}; if($1<min) {min=$1}; total+=$1; count+=1} END {print total/count, min, max}'`
-            echo "$ONE$i $VALS" > $TOPDIR/cgns_time_$j0
+            if test -f $TOPDIR/cgns-timings.$current_time; then
+               cp $TOPDIR/cgns-timings.$current_time pre_x
+               paste -d' ' pre_x time_x > $TOPDIR/cgns-timings.$current_time
+               rm -f pre_x
+            else
+               cp time_x $TOPDIR/cgns-timings.$current_time
+            fi
+            if [[ $i != d* ]]; then
+               VAR1="\"1_${i}\" "
+            else
+               VAR1="DEV"
+            fi
+            if [[ $i == 10_0* ]] || [[ $i == 12_0* ]] || [[ $i == 14_0* ]] || [[ $i == d* ]]; then
+               count=$(( count + 1 ))
+            fi
+            count=$(( count + 1 ))
+            if [[ $i == d* ]]; then
+               XTICS+=${VAR1}${count}
+            else
+               XTICS+=${VAR1}${count}" , "
+            fi
         else
             PREFIX="p"
             cd $TOPDIR/CGNS.${i}/src/ptests
@@ -404,8 +429,18 @@ done
 # Combine the timing numbers to a single file
 if [ $TEST = 1 ]; then
 
-    current_time=$(date "+%Y.%m.%d-%H.%M.%S")
+if [[ $PARALLEL != 1 ]]; then
 
+    echo "#set xtics ("${XTICS}") scale 0.0" >> $TOPDIR/cgns-timings.$current_time
+    #echo "#nprocs=$NPROCS, nelem=$NELEM" > ${PREFIX}matlab-timings.$current_time
+    #echo "#nprocs=$NPROCS, nelem=$NELEM" > ${PREFIX}matlab-memory.$current_time
+    #cat matlab_time_* >> ${PREFIX}matlab-timings.$current_time
+    #cat matlab_mem_* >> ${PREFIX}matlab-memory.$current_time
+    sed -i 's/_/./g' $TOPDIR/cgns-timings.$current_time
+    #sed -i 's/_/./g' ${PREFIX}matlab-memory.$current_time
+    
+    #rm -f matlab_*
+else
     i=1
     FILE_T=${PREFIX}cgns-timings
     until [ ! -f "${FILE_T}" ]
@@ -436,4 +471,4 @@ if [ $TEST = 1 ]; then
 
     rm -f cgns_*
 fi
-
+fi

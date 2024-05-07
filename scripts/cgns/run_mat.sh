@@ -274,6 +274,9 @@ do
          cp time_x matlab-timings.$current_time
        fi
        VAR1="\"1_${i}\" "
+       if [[ $i == 8* ]] || [[ $i == 10* ]] || [[ $i == 12* ]] || [[ $i == 14* ]] || [[ $i == d* ]]; then
+         count=$(( count + 1 ))
+       fi
        count=$(( count + 1 ))
        XTICS+=${VAR1}${count}" , "
        #echo $XTICS
@@ -292,7 +295,7 @@ if [ $TEST = 1 ]; then
     #echo "#nprocs=$NPROCS, nelem=$NELEM" > ${PREFIX}matlab-memory.$current_time
     #cat matlab_time_* >> ${PREFIX}matlab-timings.$current_time
     #cat matlab_mem_* >> ${PREFIX}matlab-memory.$current_time
-    #sed -i 's/_/./g' ${PREFIX}matlab-timings.$current_time
+    sed -i 's/_/./g' matlab-timings.$current_time
     #sed -i 's/_/./g' ${PREFIX}matlab-memory.$current_time
     
     #rm -f matlab_*
