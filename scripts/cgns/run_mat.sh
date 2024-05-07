@@ -5,18 +5,18 @@
 #
 # Download and Build all the versions of hdf5
 #
-#./run_matlab.sh --notest --matlab_nobuild
+#./run_mat.sh --notest --matlab_nobuild
 #
 # Build different versions of MATLAB 
 #
-#./run_matlab.sh --hdf5_nobuild --notest
+#./run_mat.sh --hdf5_nobuild --notest
 #
 # Build both, no testing
 #
-# ./run_matlab.sh --notest
+# ./run_mat.sh --notest
 #
 # run the tests
-# ./run_matlab.sh --hdf5_nobuild --matlab_nobuild --ptest 4 2014
+# ./run_mat.sh --hdf5_nobuild --matlab_nobuild --ptest 4 2014
 
 red=$'\e[1;31m'
 grn=$'\e[1;32m'
