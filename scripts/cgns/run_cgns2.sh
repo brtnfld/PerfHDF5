@@ -4,22 +4,22 @@
 #
 # Download and Build all the versions of hdf5
 #
-#./run_cgns.sh --enable-parallel --notest --cgns_nobuild
+#./run_cgns2.sh --enable-parallel --notest --cgns_nobuild
 #
 # Build different versions of CGNS 
 #
-#./run_cgns.sh --enable-parallel --hdf5_nobuild --notest
+#./run_cgns2.sh --enable-parallel --hdf5_nobuild --notest
 #
 # Build both, no testing
 #
-# ./run_cgns.sh --enable-parallel --notest
+# ./run_cgns2.sh --enable-parallel --notest
 #
 # Run just the serial tests
 # 
-# ./run_cgns.sh --hdf5_nobuild --cgns_nobuild
+# ./run_cgns2.sh --hdf5_nobuild --cgns_nobuild
 #
 # Run the parallel tests (--ptest numproc numelem)
-# ./run_cgns.sh --enable-parallel --hdf5_nobuild --cgns_nobuild --ptest 4 2014
+# ./run_cgns2.sh --enable-parallel --hdf5_nobuild --cgns_nobuild --ptest 4 2014
 
 red=$'\e[1;31m'
 grn=$'\e[1;32m'
