@@ -125,13 +125,14 @@ if [[ $TEST != 0 ]]; then
 else
     printf "TRUE \n $nc"
 fi
+printf "ENABLE PARALLEL:"
 if [[ $PARALLEL != 1 ]]; then
-   printf "$red Enabled Parallel: FALSE $nc \n\n"
+   printf "$red FALSE $nc \n\n"
    export CC="gcc"
    export FC="gfortran"
    export F77="gfortran"
 else
-   printf "$grn Enabled Parallel: TRUE $nc \n\n"
+   printf "$grn TRUE $nc \n\n"
    OPTS="--enable-parallel"
 
 # ANL
